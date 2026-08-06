@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roberto Bloom — Geospatial Software Engineer</title>
+<meta name="description" content="Geospatial software engineer building drone-to-3D reconstruction pipelines. COLMAP, Gaussian Splatting, 3D Tiles, CesiumJS. FAA Part 107.">
+<style>
+:root{
+  --bg:#0d1117; --panel:#151b23; --panel2:#1c232d; --line:#2a3441;
+  --tx:#e6edf3; --dim:#8b98a5; --dim2:#6e7c8a;
+  --ac:#4fc3a1; --ac2:#58a6ff; --warn:#e3b341;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px}
+a{color:var(--ac2);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* header */
+header{padding:76px 0 52px;border-bottom:1px solid var(--line)}
+.eyebrow{font:500 12px/1 var(--mono);color:var(--ac);letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+h1{font-size:clamp(34px,5.5vw,52px);line-height:1.06;letter-spacing:-.025em;font-weight:680;margin-bottom:14px}
+.tagline{font-size:19px;color:var(--dim);max-width:660px;margin-bottom:26px}
+.tagline b{color:var(--tx);font-weight:600}
+.contact{display:flex;gap:8px;flex-wrap:wrap;font-size:14px}
+.contact a,.contact span{padding:6px 13px;border:1px solid var(--line);border-radius:7px;color:var(--dim);background:var(--panel)}
+.contact a:hover{border-color:var(--ac);color:var(--ac);text-decoration:none}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:44px 0 0}
+.m{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.m .v{font:650 25px/1 var(--mono);color:var(--ac);letter-spacing:-.02em}
+.m .k{font-size:12.5px;color:var(--dim2);margin-top:7px;line-height:1.4}
+
+section{padding:60px 0;border-bottom:1px solid var(--line)}
+h2{font-size:13px;font-family:var(--mono);color:var(--ac);letter-spacing:.14em;text-transform:uppercase;margin-bottom:28px;font-weight:500}
+h3{font-size:23px;letter-spacing:-.015em;margin-bottom:6px;font-weight:640}
+.sub{color:var(--dim2);font-size:13.5px;font-family:var(--mono);margin-bottom:18px}
+
+/* case study */
+.cs{margin-bottom:56px}
+.cs:last-child{margin-bottom:0}
+.cs p{color:var(--dim);margin-bottom:14px;max-width:730px}
+.cs p b{color:var(--tx);font-weight:600}
+.role{display:inline-block;font-size:11.5px;font-family:var(--mono);color:var(--warn);border:1px solid rgba(227,179,65,.3);background:rgba(227,179,65,.07);padding:3px 9px;border-radius:5px;margin-bottom:14px}
+.stack{display:flex;gap:6px;flex-wrap:wrap;margin-top:18px}
+.chip{font:12px var(--mono);padding:4px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;color:var(--dim)}
+.res{background:var(--panel);border-left:2px solid var(--ac);border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0 0}
+.res .t{font:500 11px/1 var(--mono);color:var(--ac);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px}
+.res ul{list-style:none;font-size:14.5px;color:var(--dim)}
+.res li{padding-left:16px;position:relative;margin-bottom:5px}
+.res li:last-child{margin-bottom:0}
+.res li:before{content:"▸";position:absolute;left:0;color:var(--ac);font-size:11px;top:2px}
+.res b{color:var(--tx);font-weight:600}
+
+figure{margin:22px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px 20px 16px;overflow-x:auto}
+figure svg{display:block;width:100%;height:auto;min-width:560px}
+figcaption{font-size:12.5px;color:var(--dim2);margin-top:14px;text-align:center;font-family:var(--mono)}
+
+/* skills */
+.sk{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+.sk .g h4{font:500 12px/1 var(--mono);color:var(--tx);letter-spacing:.06em;text-transform:uppercase;margin-bottom:11px}
+.sk .g p{font-size:14px;color:var(--dim);line-height:1.8}
+
+.codeh{font:500 11px/1 var(--mono);color:var(--ac);letter-spacing:.12em;text-transform:uppercase;margin:26px 0 10px;font-weight:500}
+pre{background:#0a0e14;border:1px solid var(--line);border-radius:9px;padding:16px 18px;overflow-x:auto;margin-bottom:6px}
+pre code{font:12.5px/1.65 var(--mono);color:#c9d5e1;white-space:pre;display:block}
+pre .k{color:#ff7b9c}pre .fn{color:#82d8ff}pre .ty{color:#4fc3a1}
+pre .n{color:#e3b341}pre .s{color:#a5d6a7}pre .cm{color:#5c6b7a;font-style:italic}
+
+footer{padding:44px 0 60px;color:var(--dim2);font-size:13.5px}
+footer a{color:var(--dim)}
+.note{font-size:12.5px;color:var(--dim2);font-style:italic;margin-top:10px;max-width:730px}
+
+@media(max-width:600px){
+  header{padding:52px 0 40px}
+  section{padding:44px 0}
+  figure{padding:16px 12px 12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Geospatial Software Engineer · FAA Part 107</div>
+    <h1>Roberto Bloom</h1>
+    <p class="tagline">I build <b>drone-to-3D reconstruction pipelines</b> — raw aerial imagery through Structure-from-Motion and Gaussian Splatting to georeferenced 3D Tiles that render in the browser at true world coordinates. I plan the flight and write the software that turns it into a measurable product.</p>
+    <div class="contact">
+      <a href="mailto:bloomro3@msu.edu">bloomro3@msu.edu</a>
+      <a href="https://linkedin.com/in/roberto-bloom">LinkedIn</a>
+      <a href="https://github.com/Emerlads/georef-splat-tools">Code</a>
+      <a href="Roberto_Bloom_Resume.pdf">Résumé (PDF)</a>
+      <span>Pullman, MI · Remote</span>
+    </div>
+
+    <div class="metrics">
+      <div class="m"><div class="v">0.107 m</div><div class="k">Horizontal GPS residual across 119/120 solved cameras</div></div>
+      <div class="m"><div class="v">0.24 m</div><div class="k">3D georeferencing RMSE, surfaced as in-app QA readout</div></div>
+      <div class="m"><div class="v">1.3 M</div><div class="k">Gaussians classified in a single production scene</div></div>
+      <div class="m"><div class="v">Part 107</div><div class="k">FAA certified — I fly the missions I process</div></div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Selected Work</h2>
+
+    <!-- CS 1 -->
+    <div class="cs">
+      <h3>Georeferenced Gaussian Splatting Pipeline</h3>
+      <div class="sub">Raw drone imagery → browser-viewable 3D Tiles at true lat/lon/elevation</div>
+      <span class="role">Sole developer · production</span>
+      <p>Commercial photogrammetry tools produce georeferenced output but lock the process behind a closed pipeline. I rebuilt that capability end-to-end with open tooling so every stage stays inspectable and the accuracy is measurable rather than asserted.</p>
+      <p>The hard part isn't the reconstruction — it's the <b>coordinate math between stages</b>. Structure-from-Motion solves camera poses in an arbitrary local frame with arbitrary scale. Getting that into real-world coordinates means fitting solved camera centers to EXIF GPS with a similarity transform, landing in a local ENU frame in true meters, and only then training the splat model so the output is metrically meaningful.</p>
+
+      <figure>
+        <svg viewBox="0 0 900 190" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,Consolas,monospace">
+          <defs>
+            <marker id="a1" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L8,3 L0,6 z" fill="#4fc3a1"/>
+            </marker>
+          </defs>
+          <g font-size="11.5">
+            <rect x="4" y="42" width="118" height="54" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="63" y="64" fill="#e6edf3" text-anchor="middle" font-size="12">GPS-tagged</text>
+            <text x="63" y="80" fill="#8b98a5" text-anchor="middle">drone imagery</text>
+
+            <rect x="152" y="42" width="118" height="54" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="211" y="64" fill="#e6edf3" text-anchor="middle" font-size="12">COLMAP SfM</text>
+            <text x="211" y="80" fill="#8b98a5" text-anchor="middle">camera poses</text>
+
+            <rect x="300" y="34" width="132" height="70" rx="7" fill="#152b25" stroke="#4fc3a1"/>
+            <text x="366" y="56" fill="#4fc3a1" text-anchor="middle" font-size="12">Sim3 fit</text>
+            <text x="366" y="72" fill="#8b98a5" text-anchor="middle">poses → EXIF GPS</text>
+            <text x="366" y="88" fill="#8b98a5" text-anchor="middle">local ENU (m)</text>
+
+            <rect x="462" y="42" width="126" height="54" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="525" y="64" fill="#e6edf3" text-anchor="middle" font-size="12">Nerfstudio</text>
+            <text x="525" y="80" fill="#8b98a5" text-anchor="middle">splatfacto train</text>
+
+            <rect x="618" y="42" width="118" height="54" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="677" y="64" fill="#e6edf3" text-anchor="middle" font-size="12">SPZ / 3D Tiles</text>
+            <text x="677" y="80" fill="#8b98a5" text-anchor="middle">decimate + pack</text>
+
+            <rect x="766" y="42" width="130" height="54" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="831" y="64" fill="#e6edf3" text-anchor="middle" font-size="12">CesiumJS</text>
+            <text x="831" y="80" fill="#8b98a5" text-anchor="middle">true lat/lon/elev</text>
+
+            <line x1="126" y1="69" x2="146" y2="69" stroke="#4fc3a1" stroke-width="1.4" marker-end="url(#a1)"/>
+            <line x1="274" y1="69" x2="294" y2="69" stroke="#4fc3a1" stroke-width="1.4" marker-end="url(#a1)"/>
+            <line x1="436" y1="69" x2="456" y2="69" stroke="#4fc3a1" stroke-width="1.4" marker-end="url(#a1)"/>
+            <line x1="592" y1="69" x2="612" y2="69" stroke="#4fc3a1" stroke-width="1.4" marker-end="url(#a1)"/>
+            <line x1="740" y1="69" x2="760" y2="69" stroke="#4fc3a1" stroke-width="1.4" marker-end="url(#a1)"/>
+
+            <rect x="300" y="128" width="132" height="30" rx="6" fill="#0d1117" stroke="#2a3441" stroke-dasharray="3 3"/>
+            <text x="366" y="147" fill="#e3b341" text-anchor="middle" font-size="11">RMSE residual QA</text>
+            <line x1="366" y1="108" x2="366" y2="124" stroke="#e3b341" stroke-width="1.2" stroke-dasharray="3 3"/>
+          </g>
+        </svg>
+        <figcaption>Accuracy is established at the alignment stage, then measured — not assumed downstream.</figcaption>
+      </figure>
+
+      <div class="res">
+        <div class="t">Outcome</div>
+        <ul>
+          <li><b>0.107 m horizontal GPS residual</b> across 119 of 120 solved cameras on a target capture subset</li>
+          <li><b>0.24 m 3D georeferencing RMSE</b>, exposed in-app as a per-reconstruction QA readout so field users see confidence, not just geometry</li>
+          <li>Diagnosed placement failures traced to <b>WGS84 ellipsoidal height vs. MSL/geoid offsets</b> and terrain-height correction — a class of bug that silently puts models tens of metres off vertically</li>
+          <li>Compressed a 109k-Gaussian scene to a ~7.4 MB PLY for practical browser delivery</li>
+        </ul>
+      </div>
+      <div class="res" style="border-left-color:var(--warn)">
+        <div class="t" style="color:var(--warn)">On the numbers above</div>
+        <ul>
+          <li>Both figures are <b>camera-prior fit residuals</b> — they measure how well solved cameras agree with the GPS priors they were fitted to. That is not the same as independent accuracy against surveyed checkpoints withheld from the fit, and the tooling stamps every output with that caveat rather than letting the distinction blur.</li>
+          <li>Consumer GPS priors are metre-level at best; RTK or surveyed ground control should replace them where available, and the pipeline is built to accept that substitution.</li>
+        </ul>
+      </div>
+      <h4 class="codeh">From the alignment tool</h4>
+      <p style="margin-bottom:12px">The geodesy is written out rather than delegated to a library — geodetic to ECEF on the WGS84 ellipsoid, then ECEF to a local ENU frame via the rotation matrix at the scene origin:</p>
+      <pre><code><span class="k">def</span> <span class="fn">geodetic_to_ecef</span>(lat_deg: <span class="ty">float</span>, lon_deg: <span class="ty">float</span>, h: <span class="ty">float</span>) -&gt; np.ndarray:
+    <span class="cm"># WGS84 ellipsoid.</span>
+    a = <span class="n">6378137.0</span>
+    f = <span class="n">1.0</span> / <span class="n">298.257223563</span>
+    e2 = f * (<span class="n">2.0</span> - f)
+    lat, lon = math.radians(lat_deg), math.radians(lon_deg)
+    sin_lat, cos_lat = math.sin(lat), math.cos(lat)
+    n = a / math.sqrt(<span class="n">1.0</span> - e2 * sin_lat * sin_lat)
+    <span class="k">return</span> np.array([
+        (n + h) * cos_lat * math.cos(lon),
+        (n + h) * cos_lat * math.sin(lon),
+        (n * (<span class="n">1.0</span> - e2) + h) * sin_lat,
+    ], dtype=np.float64)
+
+
+<span class="k">def</span> <span class="fn">ecef_to_enu_matrix</span>(lat_deg: <span class="ty">float</span>, lon_deg: <span class="ty">float</span>) -&gt; np.ndarray:
+    lat, lon = math.radians(lat_deg), math.radians(lon_deg)
+    sin_lat, cos_lat = math.sin(lat), math.cos(lat)
+    sin_lon, cos_lon = math.sin(lon), math.cos(lon)
+    <span class="k">return</span> np.array([
+        [-sin_lon,            cos_lon,           <span class="n">0.0</span>],
+        [-sin_lat * cos_lon, -sin_lat * sin_lon, cos_lat],
+        [ cos_lat * cos_lon,  cos_lat * sin_lon, sin_lat],
+    ], dtype=np.float64)</code></pre>
+
+      <h4 class="codeh">From the residuals tool</h4>
+      <p style="margin-bottom:12px">Every accuracy report carries its own methodological caveat, so the number can't be quoted as something it isn't:</p>
+      <pre><code>payload = {
+    <span class="s">"schema"</span>: <span class="s">"geosplat.georef_residuals.v1"</span>,
+    <span class="s">"method"</span>: <span class="s">"COLMAP camera centers fit to EXIF GPS priors"</span>,
+    <span class="s">"registered_cameras_with_gps"</span>: len(errors),
+    <span class="s">"residuals"</span>: {
+        <span class="s">"three_d"</span>:    stats(np.linalg.norm(arr, axis=<span class="n">1</span>)),
+        <span class="s">"horizontal"</span>: stats(np.linalg.norm(arr[:, :<span class="n">2</span>], axis=<span class="n">1</span>)),
+        <span class="s">"vertical"</span>:   stats(np.abs(arr[:, <span class="n">2</span>])),
+    },
+    <span class="s">"note"</span>: <span class="s">"Camera-prior fit residual, not independent "</span>
+            <span class="s">"surveyed GCP/checkpoint error."</span>,
+}</code></pre>
+      <p style="margin-top:16px"><a href="https://github.com/Emerlads/georef-splat-tools"><b>→ georef-splat-tools</b></a> — the full toolset, 8 command-line tools, ~1,340 lines, MIT licensed.</p>
+      <div class="stack">
+        <span class="chip">COLMAP / pycolmap</span><span class="chip">Nerfstudio splatfacto</span><span class="chip">Sim3 alignment</span>
+        <span class="chip">WGS84 / ECEF / ENU</span><span class="chip">3D Tiles</span><span class="chip">SPZ</span>
+        <span class="chip">CesiumJS</span><span class="chip">Python</span><span class="chip">TypeScript</span>
+      </div>
+    </div>
+
+    <!-- CS 2 -->
+    <div class="cs">
+      <h3>3D Inspection &amp; Compliance Viewer</h3>
+      <div class="sub">Turning a photoreal capture into pass/fail engineering answers</div>
+      <span class="role">Sole developer · production</span>
+      <p>A photoreal 3D scene looks impressive and answers nothing. The value is in measurement. I built a browser viewer that takes Gaussian splat scenes and returns the specific determinations inspection crews actually need — vegetation clearance compliance, structural clearances, and dimensional analysis — with the result attached to the geometry rather than to a clipboard.</p>
+      <p>For vegetation work the viewer segments a clicked object, computes its minimum height above the ground plane, compares against a configurable threshold, and reports pass/fail with the measured value and a visualized clearance plane. A separate mode slices the scene at <b>1.3 m for diameter-at-breast-height</b>, clusters trunk cross-sections, and classifies each into fire fuel size classes under the NFFL system.</p>
+      <p class="note">An early approach tinting individual splats via the renderer's RGBA buffer produced no visible result; I pivoted to generating explicit 3D marker geometry at detected features, which also made the classifications selectable and inspectable rather than merely visual.</p>
+      <div class="res">
+        <div class="t">Capabilities Shipped</div>
+        <ul>
+          <li>Clearance-violation detection with configurable thresholds and pass/fail visualization</li>
+          <li><b>DBH slice analysis at 1.3 m</b> with automatic trunk clustering</li>
+          <li>Fuel size classification (1h / 10h / 100h / 1000h) driven by measured diameter</li>
+          <li>Point-to-point measurement and 3D segmentation backed by a Python ML service</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <span class="chip">Three.js</span><span class="chip">Spark.js (3DGS)</span><span class="chip">Vite</span>
+        <span class="chip">Tailwind</span><span class="chip">FastAPI</span><span class="chip">Python</span><span class="chip">Docker</span>
+      </div>
+    </div>
+
+    <!-- CS 3 -->
+    <div class="cs">
+      <h3>Human-in-the-Loop Gaussian Classification</h3>
+      <div class="sub">Teaching a classifier the categories that matter operationally</div>
+      <span class="role">Sole developer · production</span>
+      <p>Unsupervised clustering labels a scene exhaustively and arbitrarily — it finds the classes the data suggests, not the classes an inspector needs. I built a supervised path where an operator corrects labels through a QA pass and the classifier learns the domain-meaningful categories from those corrections.</p>
+      <p>The clearest evidence it works: during QA I created a <b>dead vegetation</b> class that no unsupervised cluster had ever produced. It matters operationally — dead vegetation is a fire-risk signal — and it only exists because a human with domain knowledge put it there. That's the whole argument for supervision in one example.</p>
+
+      <figure>
+        <svg viewBox="0 0 900 176" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,Consolas,monospace">
+          <defs>
+            <marker id="a2" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L8,3 L0,6 z" fill="#58a6ff"/>
+            </marker>
+          </defs>
+          <g font-size="11.5">
+            <rect x="6" y="36" width="150" height="52" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="81" y="57" fill="#e6edf3" text-anchor="middle" font-size="12">Unsupervised</text>
+            <text x="81" y="74" fill="#8b98a5" text-anchor="middle">99% coverage</text>
+
+            <rect x="196" y="36" width="150" height="52" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="271" y="57" fill="#e6edf3" text-anchor="middle" font-size="12">Operator QA</text>
+            <text x="271" y="74" fill="#8b98a5" text-anchor="middle">11 corrected · 2 confirmed</text>
+
+            <rect x="386" y="28" width="164" height="68" rx="7" fill="#152b25" stroke="#4fc3a1"/>
+            <text x="468" y="50" fill="#4fc3a1" text-anchor="middle" font-size="12">Supervised model</text>
+            <text x="468" y="67" fill="#8b98a5" text-anchor="middle">domain classes incl.</text>
+            <text x="468" y="83" fill="#e3b341" text-anchor="middle">dead_vegetation</text>
+
+            <rect x="590" y="36" width="150" height="52" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="665" y="57" fill="#e6edf3" text-anchor="middle" font-size="12">Applied to scene</text>
+            <text x="665" y="74" fill="#8b98a5" text-anchor="middle">1.3M Gaussians</text>
+
+            <rect x="780" y="36" width="114" height="52" rx="7" fill="#1c232d" stroke="#2a3441"/>
+            <text x="837" y="57" fill="#e6edf3" text-anchor="middle" font-size="12">GIS export</text>
+            <text x="837" y="74" fill="#8b98a5" text-anchor="middle">3D Tiles + GeoJSON</text>
+
+            <line x1="160" y1="62" x2="190" y2="62" stroke="#58a6ff" stroke-width="1.4" marker-end="url(#a2)"/>
+            <line x1="350" y1="62" x2="380" y2="62" stroke="#58a6ff" stroke-width="1.4" marker-end="url(#a2)"/>
+            <line x1="554" y1="62" x2="584" y2="62" stroke="#58a6ff" stroke-width="1.4" marker-end="url(#a2)"/>
+            <line x1="744" y1="62" x2="774" y2="62" stroke="#58a6ff" stroke-width="1.4" marker-end="url(#a2)"/>
+
+            <path d="M468 100 L468 128 L271 128 L271 94" fill="none" stroke="#e3b341" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#a2)"/>
+            <text x="370" y="146" fill="#e3b341" text-anchor="middle" font-size="11">re-QA raises coverage</text>
+          </g>
+        </svg>
+        <figcaption>Supervision trades coverage for correctness — then recovers coverage through iteration.</figcaption>
+      </figure>
+
+      <div class="res">
+        <div class="t">Outcome</div>
+        <ul>
+          <li>Supervised labels applied across a <b>1.3M-Gaussian</b> production scene</li>
+          <li><b>72% supervised coverage vs. 99% unsupervised</b> — the honest tradeoff; supervision only labels what it has been taught, and iterative re-QA closes the gap</li>
+          <li>Classified features exported as 3D Tiles and GeoJSON for use in standard GIS tooling</li>
+          <li>Re-ran at roughly <b>3× Gaussian density</b> with supervised labels reapplied to test stability under densification</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <span class="chip">Python</span><span class="chip">supervised classification</span><span class="chip">FastAPI</span>
+        <span class="chip">3D Tiles</span><span class="chip">GeoJSON</span><span class="chip">ArcGIS Online</span><span class="chip">Esri JS API</span>
+      </div>
+    </div>
+
+    <!-- CS 4 -->
+    <div class="cs">
+      <h3>LiDAR Processing &amp; Multispectral Sensor Integration</h3>
+      <div class="sub">Field data engineering — point clouds, reprojection, sensor SDKs</div>
+      <span class="role">Sole developer</span>
+      <p>Reconstruction work only matters if the upstream data is correctly conditioned. I built PDAL pipelines converting raw LiDAR into <b>cloud-optimized point cloud (COPC)</b> format with reprojection into projected coordinate systems for analysis, so large point clouds stream efficiently instead of requiring a full download.</p>
+      <p>Separately, I developed and validated a Windows SDK capture workflow for a <b>multispectral imaging sensor</b> — sensor integration, capture-mode configuration, and processed-output review feeding vegetation analysis. Field-side, I authored repeatable capture standards covering obstacle clearance, height tiers, image overlap, GSD targets, RTK, and lighting consistency, which is what makes reconstructions comparable across flights instead of one-off.</p>
+      <div class="stack">
+        <span class="chip">PDAL</span><span class="chip">COPC</span><span class="chip">LAS / LAZ</span><span class="chip">EPSG reprojection</span>
+        <span class="chip">QGIS</span><span class="chip">ArcGIS Pro</span><span class="chip">CloudCompare</span>
+        <span class="chip">multispectral</span><span class="chip">NDVI</span><span class="chip">Qt / C++ SDK</span><span class="chip">RTK</span>
+      </div>
+    </div>
+
+    <!-- CS 5 -->
+    <div class="cs">
+      <h3>SnowTracker — Price Intelligence Platform</h3>
+      <div class="sub">Full-stack product · ~19k lines of backend Python · 33 retailer integrations</div>
+      <span class="role">Personal project · sole developer</span>
+      <p>A price-tracking platform for snowboard equipment across <b>33 independent retailers</b>. Built because the market is fragmented across small shops running Shopify variants with no common catalog format, and no aggregator covered them.</p>
+      <p>The engineering problem isn't scraping — it's <b>identity resolution</b>. The same board appears across dozens of storefronts under inconsistent titles, so the schema separates <code>products</code> from <code>offers</code>: one canonical product, many retailer offers. A heuristic classifier normalizes titles and URLs into category, equipment type, and brand to drive that matching. Wayback Machine integration backfills price history for products that existed before tracking started.</p>
+      <div class="res">
+        <div class="t">Architecture</div>
+        <ul>
+          <li><b>Next.js</b> frontend proxying API calls through a route handler to a <b>Flask</b> backend, SQLite for storage</li>
+          <li>33 retailer-specific catalog ingestion scripts over Shopify and custom storefronts</li>
+          <li>Normalized <code>products</code>/<code>offers</code> schema so one item's price can be compared across sellers over time</li>
+          <li>Money stored as integer cents throughout — never floats</li>
+          <li>Token-protected admin surface; public browsing needs no account</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <span class="chip">Python</span><span class="chip">Flask</span><span class="chip">Next.js</span><span class="chip">TypeScript</span>
+        <span class="chip">SQLite</span><span class="chip">BeautifulSoup</span><span class="chip">data modeling</span><span class="chip">ETL</span>
+      </div>
+      <p class="note">Code not published — the ingestion layer targets named retailers. Architecture and approach described here.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Technical Skills</h2>
+    <div class="sk">
+      <div class="g">
+        <h4>3D Reconstruction</h4>
+        <p>Gaussian Splatting · COLMAP / pycolmap (SfM) · Nerfstudio splatfacto · photogrammetry · LiDAR point clouds · SPZ · 3D Tiles · RealityCapture · CloudCompare · DJI Terra</p>
+      </div>
+      <div class="g">
+        <h4>Geospatial &amp; Geodesy</h4>
+        <p>CesiumJS · Three.js · QGIS · ArcGIS Pro · ArcGIS Online · WGS84 / ECEF / ENU · Sim3 alignment · geoid &amp; terrain correction · EPSG / CRS handling · PDAL · COPC · GeoJSON</p>
+      </div>
+      <div class="g">
+        <h4>Software</h4>
+        <p>Python · TypeScript · React Native / Expo · Next.js · Flask · FastAPI · PHP · Vite · Tailwind · Docker · SQLite · AWS S3 · Git</p>
+      </div>
+      <div class="g">
+        <h4>UAS &amp; Sensors</h4>
+        <p>FAA Part 107 · DJI Matrice / M3M · RTK mission planning · nadir &amp; oblique capture · GSD targeting · KML/KMZ · multispectral · thermal · RGB</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Roberto Bloom · Geospatial Software Engineer · <a href="mailto:bloomro3@msu.edu">bloomro3@msu.edu</a> · <a href="https://linkedin.com/in/roberto-bloom">LinkedIn</a></p>
+    <p class="note">Case studies describe professional work and are written to exclude client names, site identifiers, locations, and proprietary code. Metrics are from my own engineering records.</p>
+  </div>
+</footer>
+
+</body>
+</html>
