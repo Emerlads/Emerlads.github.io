@@ -8,10 +8,24 @@
 <style>
 :root{
   --paper:#fbfaf7; --ink:#232220; --soft:#5c5954; --faint:#8a8681;
-  --rule:#ddd8cf; --accent:#7a4a2b; --box:#f4f1ea;
+  --rule:#ddd8cf; --accent:#7a4a2b; --box:#f4f1ea; --code:#3a3833; --cmt:#a09a90;
+  --diag-fill:#f4f1ea; --diag-line:#ddd8cf; --diag-hi-fill:#f6eee7; --diag-hi-line:#c8a184;
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
   --mono:"SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
 }
+html[data-theme="dark"]{
+  --paper:#16161a; --ink:#e6e2da; --soft:#a9a49b; --faint:#847f76;
+  --rule:#2f2f35; --accent:#d99b6c; --box:#1e1e23; --code:#cfcabf; --cmt:#6f6a62;
+  --diag-fill:#1e1e23; --diag-line:#33333a; --diag-hi-fill:#2a2119; --diag-hi-line:#8a5c39;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]){
+    --paper:#16161a; --ink:#e6e2da; --soft:#a9a49b; --faint:#847f76;
+    --rule:#2f2f35; --accent:#d99b6c; --box:#1e1e23; --code:#cfcabf; --cmt:#6f6a62;
+    --diag-fill:#1e1e23; --diag-line:#33333a; --diag-hi-fill:#2a2119; --diag-hi-line:#8a5c39;
+  }
+}
+html{color-scheme:light dark}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font:17px/1.62 var(--serif);
   -webkit-font-smoothing:antialiased;padding:0 22px}
@@ -49,9 +63,16 @@ figure svg{display:block;width:100%;height:auto;min-width:540px}
 .scroll{overflow-x:auto}
 figcaption{font-size:14px;color:var(--faint);font-style:italic;margin-top:9px}
 
-pre{background:#f4f1ea;border-left:2px solid var(--rule);padding:14px 17px;overflow-x:auto;margin:16px 0}
-pre code{font:12.5px/1.62 var(--mono);color:#3a3833;white-space:pre;display:block}
-.cmt{color:#a09a90}
+pre{background:var(--box);border-left:2px solid var(--rule);padding:14px 17px;overflow-x:auto;margin:16px 0}
+pre code{font:12.5px/1.62 var(--mono);color:var(--code);white-space:pre;display:block}
+.cmt{color:var(--cmt)}
+
+#theme{position:fixed;top:18px;right:18px;background:var(--box);color:var(--faint);
+  border:1px solid var(--rule);border-radius:14px;padding:5px 12px;cursor:pointer;
+  font:13px var(--serif);line-height:1.4}
+#theme:hover{color:var(--ink)}
+@media(max-width:620px){#theme{top:10px;right:10px}}
+@media print{#theme{display:none}}
 code{font-family:var(--mono);font-size:.88em}
 
 .skills p{font-size:16px;margin-bottom:11px}
@@ -69,6 +90,8 @@ footer p{margin-bottom:8px}
 </style>
 </head>
 <body>
+
+<button id="theme" type="button" aria-label="Toggle dark mode">Dark</button>
 
 <div class="w">
 <header>
@@ -105,41 +128,41 @@ footer p{margin-bottom:8px}
 <figure>
   <svg viewBox="0 0 880 160" xmlns="http://www.w3.org/2000/svg" font-family="Menlo,Consolas,monospace">
     <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="2.6" orient="auto">
-      <path d="M0,0 L7,2.6 L0,5.2 z" fill="#a8a29a"/></marker></defs>
+      <path d="M0,0 L7,2.6 L0,5.2 z" fill="var(--faint)"/></marker></defs>
     <g font-size="11">
-      <rect x="2" y="34" width="112" height="48" rx="2" fill="#f4f1ea" stroke="#ddd8cf"/>
-      <text x="58" y="55" fill="#232220" text-anchor="middle" font-size="11.5">GPS-tagged</text>
-      <text x="58" y="70" fill="#8a8681" text-anchor="middle">drone photos</text>
+      <rect x="2" y="34" width="112" height="48" rx="2" fill="var(--diag-fill)" stroke="var(--diag-line)"/>
+      <text x="58" y="55" fill="var(--ink)" text-anchor="middle" font-size="11.5">GPS-tagged</text>
+      <text x="58" y="70" fill="var(--faint)" text-anchor="middle">drone photos</text>
 
-      <rect x="144" y="34" width="112" height="48" rx="2" fill="#f4f1ea" stroke="#ddd8cf"/>
-      <text x="200" y="55" fill="#232220" text-anchor="middle" font-size="11.5">COLMAP</text>
-      <text x="200" y="70" fill="#8a8681" text-anchor="middle">solve poses</text>
+      <rect x="144" y="34" width="112" height="48" rx="2" fill="var(--diag-fill)" stroke="var(--diag-line)"/>
+      <text x="200" y="55" fill="var(--ink)" text-anchor="middle" font-size="11.5">COLMAP</text>
+      <text x="200" y="70" fill="var(--faint)" text-anchor="middle">solve poses</text>
 
-      <rect x="286" y="26" width="132" height="64" rx="2" fill="#f6eee7" stroke="#c8a184"/>
-      <text x="352" y="47" fill="#7a4a2b" text-anchor="middle" font-size="11.5">Sim3 fit to GPS</text>
-      <text x="352" y="63" fill="#8a8681" text-anchor="middle">local ENU frame,</text>
-      <text x="352" y="77" fill="#8a8681" text-anchor="middle">real metres</text>
+      <rect x="286" y="26" width="132" height="64" rx="2" fill="var(--diag-hi-fill)" stroke="var(--diag-hi-line)"/>
+      <text x="352" y="47" fill="var(--accent)" text-anchor="middle" font-size="11.5">Sim3 fit to GPS</text>
+      <text x="352" y="63" fill="var(--faint)" text-anchor="middle">local ENU frame,</text>
+      <text x="352" y="77" fill="var(--faint)" text-anchor="middle">real metres</text>
 
-      <rect x="448" y="34" width="118" height="48" rx="2" fill="#f4f1ea" stroke="#ddd8cf"/>
-      <text x="507" y="55" fill="#232220" text-anchor="middle" font-size="11.5">Nerfstudio</text>
-      <text x="507" y="70" fill="#8a8681" text-anchor="middle">splat training</text>
+      <rect x="448" y="34" width="118" height="48" rx="2" fill="var(--diag-fill)" stroke="var(--diag-line)"/>
+      <text x="507" y="55" fill="var(--ink)" text-anchor="middle" font-size="11.5">Nerfstudio</text>
+      <text x="507" y="70" fill="var(--faint)" text-anchor="middle">splat training</text>
 
-      <rect x="596" y="34" width="112" height="48" rx="2" fill="#f4f1ea" stroke="#ddd8cf"/>
-      <text x="652" y="55" fill="#232220" text-anchor="middle" font-size="11.5">SPZ / 3D Tiles</text>
-      <text x="652" y="70" fill="#8a8681" text-anchor="middle">decimate, pack</text>
+      <rect x="596" y="34" width="112" height="48" rx="2" fill="var(--diag-fill)" stroke="var(--diag-line)"/>
+      <text x="652" y="55" fill="var(--ink)" text-anchor="middle" font-size="11.5">SPZ / 3D Tiles</text>
+      <text x="652" y="70" fill="var(--faint)" text-anchor="middle">decimate, pack</text>
 
-      <rect x="738" y="34" width="126" height="48" rx="2" fill="#f4f1ea" stroke="#ddd8cf"/>
-      <text x="801" y="55" fill="#232220" text-anchor="middle" font-size="11.5">CesiumJS</text>
-      <text x="801" y="70" fill="#8a8681" text-anchor="middle">true lat/lon/elev</text>
+      <rect x="738" y="34" width="126" height="48" rx="2" fill="var(--diag-fill)" stroke="var(--diag-line)"/>
+      <text x="801" y="55" fill="var(--ink)" text-anchor="middle" font-size="11.5">CesiumJS</text>
+      <text x="801" y="70" fill="var(--faint)" text-anchor="middle">true lat/lon/elev</text>
 
-      <line x1="118" y1="58" x2="139" y2="58" stroke="#a8a29a" stroke-width="1.1" marker-end="url(#ar)"/>
-      <line x1="260" y1="58" x2="281" y2="58" stroke="#a8a29a" stroke-width="1.1" marker-end="url(#ar)"/>
-      <line x1="422" y1="58" x2="443" y2="58" stroke="#a8a29a" stroke-width="1.1" marker-end="url(#ar)"/>
-      <line x1="570" y1="58" x2="591" y2="58" stroke="#a8a29a" stroke-width="1.1" marker-end="url(#ar)"/>
-      <line x1="712" y1="58" x2="733" y2="58" stroke="#a8a29a" stroke-width="1.1" marker-end="url(#ar)"/>
+      <line x1="118" y1="58" x2="139" y2="58" stroke="var(--faint)" stroke-width="1.1" marker-end="url(#ar)"/>
+      <line x1="260" y1="58" x2="281" y2="58" stroke="var(--faint)" stroke-width="1.1" marker-end="url(#ar)"/>
+      <line x1="422" y1="58" x2="443" y2="58" stroke="var(--faint)" stroke-width="1.1" marker-end="url(#ar)"/>
+      <line x1="570" y1="58" x2="591" y2="58" stroke="var(--faint)" stroke-width="1.1" marker-end="url(#ar)"/>
+      <line x1="712" y1="58" x2="733" y2="58" stroke="var(--faint)" stroke-width="1.1" marker-end="url(#ar)"/>
 
-      <line x1="352" y1="94" x2="352" y2="114" stroke="#c8a184" stroke-width="1" stroke-dasharray="2 3"/>
-      <text x="352" y="130" fill="#7a4a2b" text-anchor="middle" font-size="10.5">residuals measured here</text>
+      <line x1="352" y1="94" x2="352" y2="114" stroke="var(--diag-hi-line)" stroke-width="1" stroke-dasharray="2 3"/>
+      <text x="352" y="130" fill="var(--accent)" text-anchor="middle" font-size="10.5">residuals measured here</text>
     </g>
   </svg>
   <figcaption>Alignment happens before training, so accuracy is established once and then verified.</figcaption>
@@ -206,7 +229,7 @@ R = np.array([
 
 <div class="proj">
   <h3>Point clouds and sensors</h3>
-  <div class="kicker">The unglamorous half</div>
+  <div class="kicker">LiDAR conditioning, sensor integration, and capture standards</div>
 
   <p>Reconstruction only works if what goes in is conditioned properly. I write PDAL pipelines that convert raw LiDAR into COPC with reprojection into projected coordinate systems, so large clouds stream instead of forcing a full download. On the sensor side I built and validated a Windows SDK capture workflow for a Sony IMX454 multispectral camera, covering integration, capture modes, and reviewing the processed output for vegetation work.</p>
 
@@ -215,14 +238,14 @@ R = np.array([
 </div>
 
 <div class="proj">
-  <h3>SnowTracker</h3>
-  <div class="kicker">A side project that got out of hand</div>
+  <h3>SnowDeal</h3>
+  <div class="kicker">Price history and vendor comparison for snow gear, live at <a href="https://snowdeal.io">snowdeal.io</a></div>
 
-  <p>Snowboard gear is scattered across dozens of small shops, mostly running Shopify variants, and nothing aggregates them. I built a price tracker covering 33 retailers, which turned into roughly 19,000 lines of backend Python.</p>
+  <p>Snow gear is scattered across dozens of independent shops, mostly running Shopify variants, and nothing aggregates them. I built and shipped a price tracker covering 33 retailers. It runs about 19,000 lines of backend Python behind brand storefronts, a searchable catalog, watchlists, and side-by-side vendor comparison.</p>
 
   <p>Scraping was the boring part. The real problem was working out that a board listed at nine different shops under nine different titles is one product. The schema splits <code>products</code> from <code>offers</code>, and a heuristic classifier normalizes titles and URLs into category, type, and brand to drive the matching. Wayback Machine lookups fill in price history from before I started tracking. Money is stored in integer cents throughout, never floats.</p>
 
-  <p class="tools">Python, Flask, Next.js, TypeScript, SQLite, BeautifulSoup</p>
+  <p class="tools">Python, Flask, Next.js, TypeScript, SQLite, BeautifulSoup, Vercel</p>
 </div>
 
 <hr>
@@ -242,6 +265,25 @@ R = np.array([
   <p>Write-ups describe professional work with client names, sites, and locations left out. Numbers come from my own records.</p>
 </footer>
 </div>
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('theme');
+  function systemDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+  function isDark(){ var t=root.getAttribute('data-theme'); return t ? t==='dark' : systemDark(); }
+  function paint(){ btn.textContent = isDark() ? 'Light' : 'Dark'; }
+  var saved=null;
+  try { saved=localStorage.getItem('theme'); } catch(e){}
+  if(saved==='dark'||saved==='light') root.setAttribute('data-theme',saved);
+  paint();
+  btn.addEventListener('click',function(){
+    var next = isDark() ? 'light' : 'dark';
+    root.setAttribute('data-theme',next);
+    try { localStorage.setItem('theme',next); } catch(e){}
+    paint();
+  });
+})();
+</script>
 
 </body>
 </html>
