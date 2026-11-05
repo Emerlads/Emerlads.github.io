@@ -1,0 +1,22 @@
+{
+ "dataset": "OpenDroneMap odm_data_aukerman (CC0)",
+ "origin": {
+  "lat": 41.30409872989766,
+  "lon": -81.7521440365497,
+  "h": 342.07094736842106
+ },
+ "geoid_undulation_m": -33.921,
+ "ground_enu_z": -102.297,
+ "fit": {
+  "cameras": 76,
+  "horizontal_rmse_m": 0.93272938089256,
+  "vertical_rmse_m": 0.8418106989062226,
+  "note": "Camera-prior fit residual: how well solved camera centres agree with the GPS positions they were fitted to. Not independent checkpoint accuracy."
+ },
+ "vertical": {
+  "n": 44,
+  "bias_m": -1.2683758498742554,
+  "rmse_m": 1.4591331922441573,
+  "method": "SfM ground points vs USGS 3DEP bare-earth (EPQS) + NOAA GEOID18"
+ }
+}

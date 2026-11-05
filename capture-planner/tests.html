@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planner Tests</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .t{font:13.5px/1.6 var(--mono);padding:3px 0;border-bottom:1px solid var(--rule)}
+  .t.pass::before{content:"PASS  ";color:var(--ok)}
+  .t.fail::before{content:"FAIL  ";color:var(--err);font-weight:600}
+  .t .d{color:var(--faint)}
+  #summary{font-size:19px;font-weight:600;margin:14px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <a class="back" href="index.html">&larr; Capture planner</a>
+  <h1>Geometry and export tests</h1>
+  <p class="sub">Assertions on the pure functions in <code>planner.js</code>. Open this file in a browser; no build step.</p>
+</header>
+<div id="summary">Running…</div>
+<div id="out"></div>
+</div>
+<script src="planner.js"></script>
+<script>
+(function () {
+  var P = window.Planner, out = document.getElementById('out'), pass = 0, fail = 0;
+  function log(ok, name, detail) {
+    var d = document.createElement('div'); d.className = 't ' + (ok ? 'pass' : 'fail');
+    d.textContent = name; if (detail) { var s = document.createElement('span'); s.className = 'd'; s.textContent = '  ' + detail; d.appendChild(s); }
+    out.appendChild(d); ok ? pass++ : fail++;
+  }
+  function near(name, got, want, tol) { log(Math.abs(got - want) <= tol, name, 'got ' + got + ', want ' + want + ' ±' + tol); }
+  function ok(name, cond, detail) { log(!!cond, name, detail); }
+  function wrap(name, fn) { try { fn(); } catch (e) { log(false, name + ' threw', e.message); } }
+
+  var m3e = P.cameraById('m3e'), p4 = P.cameraById('p4rtk');
+
+  /* --- GSD, altitude, footprint --- */
+  wrap('gsd', function () {
+    near('M3E GSD at 100 m is about 2.7 cm/px', P.gsdFromAltitude(m3e, 100), 2.67, 0.03);
+    near('M3E altitude for 2.7 cm/px is about 101 m', P.altitudeFromGsd(m3e, 2.7), 101.3, 0.6);
+    near('Altitude <-> GSD round trip', P.altitudeFromGsd(m3e, P.gsdFromAltitude(m3e, 87.5)), 87.5, 1e-9);
+    near('P4 RTK GSD at 100 m is about 2.74 cm/px', P.gsdFromAltitude(p4, 100), 2.74, 0.02);
+    near('M3E at 400 ft (121.92 m) is about 3.25 cm/px', P.gsdFromAltitude(m3e, P.PART107_LIMIT_M), 3.25, 0.02);
+    var fp = P.footprint(m3e, 100);
+    near('M3E footprint width at 100 m about 140.8 m', fp.w, 140.8, 0.2);
+    near('M3E footprint height at 100 m about 105.8 m', fp.h, 105.8, 0.2);
+    near('Footprint width equals GSD x pixels', fp.w, P.gsdFromAltitude(m3e, 100) * m3e.pxW / 100, 1e-9);
+    near('Line spacing at 65% side overlap', P.lineSpacing(fp.w, 0.65), 49.3, 0.1);
+    near('Photo interval at 75% front overlap', P.photoInterval(fp.h, 0.75), 26.4, 0.1);
+    near('M3E horizontal FOV about 70.3°', P.fov(m3e).h, 70.3, 0.3);
+    near('Max speed for 0.7 s shutter at 26.4 m interval', P.maxSpeedForShutter(26.4, 0.7), 37.7, 0.1);
+    near('Part 107 limit is 121.92 m', P.PART107_LIMIT_M, 121.92, 0.01);
+  });
+
+  /* --- Local frame --- */
+  wrap('frame', function () {
+    var f = P.makeFrame(45, -90);
+    var xy = f.toXY(45.0009, -89.9988);
+    near('Frame: 0.0009° lat is about 100 m north', xy.y, 100.2, 0.5);
+    near('Frame: 0.0012° lon east at 45° is about 94 m east', xy.x, 94.4, 0.5);
+    var ll = f.toLL(xy.x, xy.y);
+    near('Frame round trip lat', ll.lat, 45.0009, 1e-9);
+    near('Frame round trip lon', ll.lon, -89.9988, 1e-9);
+    near('Frame agrees with haversine within 1 cm', Math.sqrt(xy.x * xy.x + xy.y * xy.y), P.haversine(45, -90, 45.0009, -89.9988), 0.01);
+    near('Heading east is 90°', P.headingDeg({ x: 0, y: 0 }, { x: 10, y: 0 }), 90, 1e-9);
+    near('Heading north is 0°', P.headingDeg({ x: 0, y: 0 }, { x: 0, y: 10 }), 0, 1e-9);
+  });
+
+  /* --- Polygon helpers --- */
+  var rect = [{ x: 0, y: 0 }, { x: 200, y: 0 }, { x: 200, y: 100 }, { x: 0, y: 100 }];
+  wrap('polygon', function () {
+    near('Rectangle area 200x100 = 20000 m²', P.polygonArea(rect), 20000, 1e-6);
+    near('Reverse winding gives same area', P.polygonArea(rect.slice().reverse()), 20000, 1e-6);
+    ok('Point inside rectangle', P.pointInPolygon({ x: 50, y: 50 }, rect));
+    ok('Point outside rectangle', !P.pointInPolygon({ x: 250, y: 50 }, rect));
+    near('Longest edge heading of 200x100 rect is 90° (east-west)', P.longestEdgeHeading(rect), 90, 1e-9);
+  });
+
+  /* --- Line clipping --- */
+  wrap('clip', function () {
+    // Horizontal line (heading 90): d = east, n = south-ish (cos90, -sin90) = (0,-1); s = -y
+    var d = { x: 1, y: 0 }, n = { x: 0, y: -1 };
+    var segs = P.clipLineToPolygon(rect, n, d, -50);
+    ok('One segment through rectangle', segs.length === 1);
+    near('Segment spans 200 m', P.dist(segs[0].a, segs[0].b), 200, 1e-6);
+    near('Segment at y = 50', segs[0].a.y, 50, 1e-6);
+    ok('Line outside polygon yields nothing', P.clipLineToPolygon(rect, n, d, -150).length === 0);
+    // U-shaped (concave) polygon: a line through the gap must produce two segments
+    var u = [{ x: 0, y: 0 }, { x: 300, y: 0 }, { x: 300, y: 200 }, { x: 200, y: 200 }, { x: 200, y: 80 }, { x: 100, y: 80 }, { x: 100, y: 200 }, { x: 0, y: 200 }];
+    var two = P.clipLineToPolygon(u, n, d, -150);
+    ok('Concave polygon: line through the notch gives 2 segments', two.length === 2, 'got ' + two.length);
+    if (two.length === 2) { near('First notch segment 100 m', P.dist(two[0].a, two[0].b), 100, 1e-6); near('Second notch segment 100 m', P.dist(two[1].a, two[1].b), 100, 1e-6); }
+    var one = P.clipLineToPolygon(u, n, d, -40);
+    ok('Concave polygon: line below the notch gives 1 segment of 300 m', one.length === 1 && Math.abs(P.dist(one[0].a, one[0].b) - 300) < 1e-6);
+    // Vertex hit exactly: diamond, line through its two side vertices
+    var diamond = [{ x: 0, y: 50 }, { x: 50, y: 100 }, { x: 100, y: 50 }, { x: 50, y: 0 }];
+    var dv = P.clipLineToPolygon(diamond, n, d, -50);
+    ok('Line through two vertices gives one segment', dv.length === 1 && Math.abs(P.dist(dv[0].a, dv[0].b) - 100) < 1e-6, JSON.stringify(dv));
+  });
+
+  /* --- Grid lines --- */
+  wrap('gridLines', function () {
+    var lines = P.gridLines(rect, 49.3, 90, 140.8);   // 100 m across track; footprint already covers it
+    ok('100 m wide strip with 140.8 m footprint needs 1 line', lines.length === 1, 'got ' + lines.length);
+    near('Single line is centred at y = 50', lines[0].segments[0].a.y, 50, 1e-6);
+    var lines2 = P.gridLines(rect, 20, 90, 40);       // (100-40)/20 + 1 = 4 lines
+    ok('100 m across, 40 m footprint, 20 m spacing gives 4 lines', lines2.length === 4, 'got ' + lines2.length);
+    var ys = lines2.map(function (l) { return l.segments[0].a.y; }).sort(function (a, b) { return a - b; });
+    near('Lines are 20 m apart', ys[1] - ys[0], 20, 1e-6);
+    near('Lines symmetric about the centre', (ys[0] + ys[3]) / 2, 50, 1e-6);
+    ok('Edge coverage: first line centre - half footprint <= 0', ys[0] - 20 <= 1e-6, 'first line at ' + ys[0]);
+    var lines3 = P.gridLines(rect, 20, 0, 40);        // along north: 200 m across => 9 lines
+    ok('Heading 0 over 200 m width gives 9 lines', lines3.length === 9, 'got ' + lines3.length);
+    var pts = P.photosAlongSegment({ x: 0, y: 0 }, { x: 100, y: 0 }, 26.4);
+    ok('100 m segment at 26.4 m interval gives 5 stations (4 gaps of 25 m)', pts.length === 5, 'got ' + pts.length);
+    near('Last station is at the segment end', pts[pts.length - 1].x, 100, 1e-9);
+  });
+
+  /* --- Full grid plan --- */
+  wrap('planGrid', function () {
+    // ~200 x 100 m rectangle at 45°N
+    var f = P.makeFrame(45, -90);
+    var polyLL = rect.map(function (p) { var ll = f.toLL(p.x, p.y); return { lat: ll.lat, lon: ll.lon }; });
+    var plan = P.planGrid(polyLL, m3e, { altitude: 100, frontOverlap: 0.75, sideOverlap: 0.65, heading: 90, speed: 8, doubleGrid: false, turnTime: 6, usableBatteryMin: 22 });
+    near('Plan area 20000 m²', plan.areaM2, 20000, 1);
+    near('Plan GSD 2.67', plan.gsd, 2.67, 0.03);
+    ok('Plan has 1 line', plan.lineCount === 1, 'got ' + plan.lineCount);
+    ok('Plan photo count 9 (8 gaps of 25 m over 200 m)', plan.photos.length === 9, 'got ' + plan.photos.length);
+    // plan.polyXY is expressed in a frame centred on the polygon's vertex centroid.
+    function allInside(pl) {
+      var cx = 0, cy = 0; pl.polyXY.forEach(function (q) { cx += q.x / pl.polyXY.length; cy += q.y / pl.polyXY.length; });
+      return pl.photos.every(function (p) {
+        var dx = cx - p.x, dy = cy - p.y, L = Math.sqrt(dx * dx + dy * dy) || 1;
+        return P.pointInPolygon({ x: p.x + dx / L * 0.01, y: p.y + dy / L * 0.01 }, pl.polyXY);
+      });
+    }
+    ok('All photo stations lie inside or on the polygon (nudged 1 cm toward centroid)', allInside(plan));
+    ok('Photos have lat/lon within polygon bbox', plan.photos.every(function (p) { return p.lat >= 44.9999 && p.lat <= 45.001 && p.lon >= -90.0001 && p.lon <= -89.997; }));
+    near('Route length 200 m', plan.routeLen, 200, 0.01);
+    ok('No Part 107 warning at 100 m', !plan.warnings.some(function (w) { return /Part 107/.test(w.text); }));
+    ok('No shutter warning at 8 m/s (3.3 s interval)', !plan.warnings.some(function (w) { return /interval/.test(w.text); }));
+    near('Interval seconds = 26.4 / 8', plan.intervalS, 3.3, 0.02);
+
+    var tall = P.planGrid(polyLL, m3e, { altitude: 130, frontOverlap: 0.75, sideOverlap: 0.65, heading: 90, speed: 8, doubleGrid: false });
+    ok('130 m triggers Part 107 warning', tall.warnings.some(function (w) { return w.level === 'error' && /Part 107/.test(w.text); }));
+    var fast = P.planGrid(polyLL, m3e, { altitude: 30, frontOverlap: 0.85, sideOverlap: 0.7, heading: 90, speed: 12, doubleGrid: false });
+    ok('30 m, 85% front, 12 m/s triggers shutter-interval warning (interval ' + fast.intervalS.toFixed(2) + ' s)', fast.warnings.some(function (w) { return w.level === 'error' && /shorter than the camera minimum/.test(w.text); }));
+    near('Suggested max speed = interval / 0.7 s', fast.maxSpeed, fast.interval / 0.7, 1e-9);
+
+    var dbl = P.planGrid(polyLL, m3e, { altitude: 100, frontOverlap: 0.75, sideOverlap: 0.65, heading: 90, speed: 8, doubleGrid: true });
+    ok('Double grid has more lines than single', dbl.lineCount > plan.lineCount, dbl.lineCount + ' vs ' + plan.lineCount);
+    ok('Double grid: second pass photos have heading 0 or 180', dbl.photos.filter(function (p) { return p.pass === 2; }).every(function (p) { return Math.abs(p.heading % 180) < 1e-6; }));
+    ok('Double grid: all photos inside polygon', allInside(dbl));
+
+    // Larger realistic block: 10 ha square, check photo density is sane (~55-65 photos/ha at this overlap for M3E @100 m)
+    var sq = [{ x: 0, y: 0 }, { x: 316, y: 0 }, { x: 316, y: 316 }, { x: 0, y: 316 }].map(function (p) { var ll = f.toLL(p.x, p.y); return { lat: ll.lat, lon: ll.lon }; });
+    var big = P.planGrid(sq, m3e, { altitude: 100, frontOverlap: 0.75, sideOverlap: 0.65, heading: 0, speed: 8, doubleGrid: false });
+    var perHa = big.photos.length / (big.areaM2 / 1e4);
+    ok('10 ha block: ' + big.lineCount + ' lines, ' + big.photos.length + ' photos (' + perHa.toFixed(0) + '/ha)', big.lineCount === 5 && perHa > 5 && perHa < 12);
+    ok('10 ha block: a few minutes of flight (' + (big.timeS / 60).toFixed(1) + ' min)', big.timeS > 120 && big.timeS < 600);
+    ok('10 ha block: 1 battery', big.batteries === 1);
+    var starts = big.waypoints.filter(function (w) { return w.role === 'segStart'; }).map(function (w) { return Math.round(w.heading); });
+    ok('Serpentine: consecutive lines alternate 0/180 heading', starts.every(function (h, i) { return i === 0 || Math.abs(h - starts[i - 1]) === 180; }), JSON.stringify(starts));
+    ok('All 10 ha photos inside polygon (nudged 1 cm toward centroid)', allInside(big));
+  });
+
+  /* --- Ring plan --- */
+  wrap('ring', function () {
+    var t = P.ringTier(m3e, { alt: 45, pitch: -45 }, 0, 0.8, 12, 15);
+    near('Tier at 45 m, -45°: radius equals altitude', t.radius, 45, 1e-9);
+    near('Tier slant range 45*sqrt2', t.slant, 63.64, 0.01);
+    near('Tier GSD at slant range', t.gsd, P.gsdFromAltitude(m3e, 63.64), 0.001);
+    ok('Tier photo count respects 15° max step (>= 24)', t.n >= 24, 'n = ' + t.n);
+    near('Step degrees = 360 / n', t.stepDeg, 360 / t.n, 1e-9);
+    var low = P.ringTier(m3e, { alt: 10, pitch: -60 }, 0, 0.8, 12, 15);
+    ok('Small ring enforces min photos', low.n >= 12, 'n = ' + low.n);
+    var bad = P.ringTier(m3e, { alt: 3, pitch: -45 }, 5, 0.8, 12, 15);
+    ok('Tier below POI height is invalid', bad.invalid === true);
+    // POI height shifts geometry
+    var t2 = P.ringTier(m3e, { alt: 45, pitch: -45 }, 5, 0.8, 12, 15);
+    near('POI at 5 m reduces radius to 40 m', t2.radius, 40, 1e-9);
+
+    var plan = P.planRing({ lat: 45, lon: -90 }, m3e, { tiers: [{ alt: 25, pitch: -30 }, { alt: 45, pitch: -45 }, { alt: 75, pitch: -62 }], poiHeight: 4, frontOverlap: 0.8, speed: 3, minPhotos: 24, maxStepDeg: 15, dwellTime: 2 });
+    ok('Ring plan has 3 tiers', plan.tiers.length === 3);
+    ok('Ring plan photos = sum of tier counts', plan.photos.length === plan.tiers.reduce(function (s, x) { return s + x.n; }, 0));
+    ok('All ring photos face the centre (heading within 0.5° of bearing to POI + 180)', plan.photos.every(function (p) {
+      var bearingFromCentre = P.headingDeg({ x: 0, y: 0 }, { x: p.x, y: p.y });
+      var diff = Math.abs(((p.heading - (bearingFromCentre + 180)) % 360 + 540) % 360 - 180);
+      return diff < 0.5;
+    }));
+    ok('Ring photos sit on their tier radius', plan.photos.every(function (p) { var tier = plan.tiers[p.tier - 1]; return Math.abs(Math.sqrt(p.x * p.x + p.y * p.y) - tier.radius) < 1e-6; }));
+    ok('Ring plan altitude is top tier (75 m)', plan.altitude === 75);
+    ok('Ring plan under 400 ft: no Part 107 warning', !plan.warnings.some(function (w) { return /Part 107/.test(w.text); }));
+    var high = P.planRing({ lat: 45, lon: -90 }, m3e, { tiers: [{ alt: 130, pitch: -60 }], poiHeight: 0, frontOverlap: 0.8, speed: 3 });
+    ok('130 m tier triggers Part 107 warning', high.warnings.some(function (w) { return /Part 107/.test(w.text); }));
+    ok('Tier 1 orbit radius about 36 m for 25 m alt, 4 m POI, -30° pitch', Math.abs(plan.tiers[0].radius - 21 / Math.tan(30 * Math.PI / 180)) < 1e-9, plan.tiers[0].radius.toFixed(2));
+  });
+
+  /* --- Import parsing --- */
+  wrap('import', function () {
+    var gj = JSON.stringify({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [[[-90, 45], [-89.999, 45], [-89.999, 45.001], [-90, 45.001], [-90, 45]]] } }] });
+    var pts = P.parsePolygonText(gj);
+    ok('GeoJSON polygon parses to 4 vertices (closing point dropped)', pts.length === 4 && pts[0].lat === 45 && pts[0].lon === -90);
+    var kml = '<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><Placemark><Polygon><outerBoundaryIs><LinearRing><coordinates>-90,45,0 -89.999,45,0 -89.999,45.001,0 -90,45.001,0 -90,45,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>';
+    var kp = P.parsePolygonText(kml);
+    ok('KML polygon parses to 4 vertices with lon,lat order honoured', kp.length === 4 && kp[2].lat === 45.001 && kp[2].lon === -89.999);
+    var threw = false; try { P.parsePolygonText('{"type":"Point","coordinates":[0,0]}'); } catch (e) { threw = true; }
+    ok('GeoJSON without a polygon throws', threw);
+  });
+
+  /* --- Exports --- */
+  wrap('exports', function () {
+    var f = P.makeFrame(45, -90);
+    var polyLL = rect.map(function (p) { var ll = f.toLL(p.x, p.y); return { lat: ll.lat, lon: ll.lon }; });
+    var plan = P.planGrid(polyLL, m3e, { altitude: 100, frontOverlap: 0.75, sideOverlap: 0.65, heading: 90, speed: 8, doubleGrid: false });
+    var kml = P.buildKML(plan, 'Test <plan>');
+    var doc = new DOMParser().parseFromString(kml, 'application/xml');
+    ok('KML is well-formed XML', doc.getElementsByTagName('parsererror').length === 0);
+    ok('KML escapes the name', kml.indexOf('Test &lt;plan&gt;') > 0);
+    ok('KML has polygon, route and photo placemarks', doc.getElementsByTagName('Polygon').length === 1 && doc.getElementsByTagName('LineString').length === 1 && doc.getElementsByTagName('Point').length === plan.photos.length);
+
+    var csv = P.buildCSV(plan).split('\n');
+    ok('CSV has header + one row per photo', csv.length === plan.photos.length + 1 && csv[0].indexOf('latitude') > 0);
+
+    var w = P.buildWPML(plan, { author: 'tester', mode: 'lineEnds' });
+    var td = new DOMParser().parseFromString(w.template, 'application/xml');
+    var wd = new DOMParser().parseFromString(w.waylines, 'application/xml');
+    ok('template.kml is well-formed', td.getElementsByTagName('parsererror').length === 0);
+    ok('waylines.wpml is well-formed', wd.getElementsByTagName('parsererror').length === 0);
+    ok('WPML namespace declared', w.template.indexOf('xmlns:wpml="http://www.dji.com/wpmz/1.0.2"') > 0);
+    ok('template has templateType waypoint, waylines has executeHeightMode', w.template.indexOf('<wpml:templateType>waypoint</wpml:templateType>') > 0 && w.waylines.indexOf('<wpml:executeHeightMode>relativeToStartPoint</wpml:executeHeightMode>') > 0);
+    ok('Line-ends mode: waypoint count = 2 per segment', w.waypointCount === plan.waypoints.length && w.waypointCount === 2 * plan.segmentCount);
+    ok('Line-ends mode uses a multipleDistance trigger with the photo interval', w.waylines.indexOf('<wpml:actionTriggerType>multipleDistance</wpml:actionTriggerType>') > 0 && w.waylines.indexOf('<wpml:actionTriggerParam>' + plan.interval.toFixed(2) + '</wpml:actionTriggerParam>') > 0);
+    ok('Drone enum for M3E is 77/0, payload 66', w.template.indexOf('<wpml:droneEnumValue>77</wpml:droneEnumValue>') > 0 && w.template.indexOf('<wpml:payloadEnumValue>66</wpml:payloadEnumValue>') > 0);
+    ok('Gimbal pitch -90 for nadir', w.waylines.indexOf('<wpml:gimbalPitchRotateAngle>-90.0</wpml:gimbalPitchRotateAngle>') > 0);
+    ok('Coordinates are lon,lat', /<coordinates>-89\.\d+,45\.\d+<\/coordinates>/.test(w.waylines));
+    ok('Waypoint indices are sequential from 0', (function () { var m = w.waylines.match(/<wpml:index>(\d+)<\/wpml:index>/g); return m.length === w.waypointCount && m[0] === '<wpml:index>0</wpml:index>' && m[m.length - 1] === '<wpml:index>' + (w.waypointCount - 1) + '</wpml:index>'; })());
+
+    var pp = P.buildWPML(plan, { mode: 'perPhoto' });
+    ok('Per-photo mode: one waypoint per photo', pp.waypointCount === plan.photos.length);
+    ok('Per-photo mode: one takePhoto per waypoint', (pp.waylines.match(/takePhoto/g) || []).length === plan.photos.length);
+
+    var ring = P.planRing({ lat: 45, lon: -90 }, m3e, { tiers: [{ alt: 25, pitch: -30 }, { alt: 45, pitch: -45 }], poiHeight: 4, frontOverlap: 0.8, speed: 3, minPhotos: 24 });
+    var rw = P.buildWPML(ring, {});
+    ok('Ring export forces per-photo waypoints', rw.mode === 'perPhoto' && rw.waypointCount === ring.photos.length);
+    ok('Ring export heads toward POI with POI point lat,lon,height', rw.waylines.indexOf('<wpml:waypointHeadingMode>towardPOI</wpml:waypointHeadingMode>') > 0 && rw.waylines.indexOf('<wpml:waypointPoiPoint>45.000000,-90.000000,4.000000</wpml:waypointPoiPoint>') > 0);
+    ok('Ring export sets a gimbal pitch per tier (two gimbalRotate actions)', (rw.waylines.match(/gimbalRotate</g) || []).length === 2 && rw.waylines.indexOf('<wpml:gimbalPitchRotateAngle>-30.0<') > 0 && rw.waylines.indexOf('<wpml:gimbalPitchRotateAngle>-45.0<') > 0);
+    ok('Ring export: executeHeight per waypoint matches tier altitude', rw.waylines.indexOf('<wpml:executeHeight>25.0</wpml:executeHeight>') > 0 && rw.waylines.indexOf('<wpml:executeHeight>45.0</wpml:executeHeight>') > 0);
+  });
+
+  document.getElementById('summary').textContent = pass + ' passed, ' + fail + ' failed' + (fail ? '' : '. All good.');
+  document.getElementById('summary').style.color = fail ? 'var(--err)' : 'var(--ok)';
+  document.title = (fail ? 'FAIL ' : 'PASS ') + 'Planner Tests';
+})();
+</script>
+</body>
+</html>
