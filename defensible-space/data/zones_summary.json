@@ -1,0 +1,70 @@
+{
+ "method": "dense point cloud gridded at a high percentile (surface, colour); ground from USGS 3DEP lidar; heuristic classes; CA defensible-space rings",
+ "cell_m": 0.5,
+ "overlay": {
+  "png": "classes.png",
+  "west": -81.75425739466618,
+  "south": 41.30318033558702,
+  "east": -81.75015001987326,
+  "north": 41.305062105758644,
+  "ground_z_enu": -102.18462662194969
+ },
+ "class_cover_pct": {
+  "ground": 7.7,
+  "low vegetation": 63.0,
+  "shrub / tall grass": 7.3,
+  "tree canopy": 20.7,
+  "structure": 0.3,
+  "raised object (not vegetation)": 1.1
+ },
+ "structures": [
+  {
+   "id": 1,
+   "footprint_area_m2": 160.2,
+   "height_m": 4.9,
+   "roof_z_enu": -98.36,
+   "ground_z_enu": -102.15,
+   "zones": {
+    "zone0": {
+     "inner_ft": 0,
+     "outer_ft": 5,
+     "area_m2": 72.2,
+     "woody_cover_pct": 1.7,
+     "tree_cover_pct": 0.0,
+     "shrub_cover_pct": 1.7,
+     "object_cover_pct": 17.0,
+     "max_veg_height_m": 1.2,
+     "observed_pct": 100.0
+    },
+    "zone1": {
+     "inner_ft": 5,
+     "outer_ft": 30,
+     "area_m2": 609.5,
+     "woody_cover_pct": 16.1,
+     "tree_cover_pct": 0.7,
+     "shrub_cover_pct": 15.3,
+     "object_cover_pct": 1.2,
+     "max_veg_height_m": 12.2,
+     "observed_pct": 99.9
+    },
+    "zone2": {
+     "inner_ft": 30,
+     "outer_ft": 100,
+     "area_m2": 3386.8,
+     "woody_cover_pct": 37.0,
+     "tree_cover_pct": 23.0,
+     "shrub_cover_pct": 14.0,
+     "object_cover_pct": 0.4,
+     "max_veg_height_m": 23.4,
+     "observed_pct": 92.4
+    }
+   },
+   "flags": [
+    "Shrub / tall grass in Zone 1 (15.3%)",
+    "Raised non-vegetation objects in Zone 0 (17.0%): check for combustibles"
+   ],
+   "priority": "watch"
+  }
+ ],
+ "note": "Screening heuristic to prioritise inspections. Not a compliance determination."
+}

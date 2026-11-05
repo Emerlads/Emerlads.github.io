@@ -1,0 +1,18 @@
+{
+ "splat_sparse_init": {
+  "n": 26,
+  "median": 8.46,
+  "rmse": 19.11
+ },
+ "splat_mvs_init": {
+  "n": 22,
+  "median": 3.15,
+  "rmse": 9.81
+ },
+ "mvs": {
+  "n": 36,
+  "median": 0.48,
+  "rmse": 0.72,
+  "p90abs": 1.08
+ }
+}

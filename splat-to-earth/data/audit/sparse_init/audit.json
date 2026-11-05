@@ -1,0 +1,42 @@
+{
+ "method": "splat rendered top-down (alpha compositing) vs COLMAP MVS surface on the same grid; open ground also vs USGS 3DEP lidar",
+ "cell_m": 0.5,
+ "cells_compared": 136712,
+ "area_compared_m2": 34178,
+ "verdict_pct": {
+  "consistent (|dz| <= 1 m)": 22.2,
+  "marginal (1-2.5 m)": 6.6,
+  "floating above surface (> 2.5 m)": 70.5,
+  "below surface (< -2.5 m)": 0.7
+ },
+ "median_abs_dz_m": 9.02,
+ "p90_abs_dz_m": 35.21,
+ "worst_floaters_m": 68.3,
+ "over_canopy": {
+  "area_m2": 11867,
+  "floating_pct": 74.7,
+  "consistent_pct": 14.7,
+  "median_dz_m": 8.05
+ },
+ "over_open_ground": {
+  "area_m2": 15368,
+  "floating_pct": 68.1,
+  "consistent_pct": 25.3,
+  "median_dz_m": 8.95
+ },
+ "open_ground_vs_lidar": {
+  "cells": 18878,
+  "splat_median_dz_m": 9.97,
+  "mvs_median_dz_m": 0.13,
+  "splat_p90_abs_dz_m": 27.52,
+  "mvs_p90_abs_dz_m": 1.0
+ },
+ "overlay": {
+  "png": "audit.png",
+  "west": -81.75425739466618,
+  "south": 41.30318033558702,
+  "east": -81.75015001987326,
+  "north": 41.305062105758644,
+  "ground_z_enu": -102.54515049342105
+ }
+}

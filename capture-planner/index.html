@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capture Planner</title>
+<meta name="description" content="Drone capture planner: turns photogrammetry and Gaussian-splat capture standards (GSD, overlap, altitude tiers, obliques) into a flight plan with KML, CSV and DJI WPML export.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<button id="theme" type="button" aria-label="Toggle dark mode">Dark</button>
+
+<div class="wrap">
+<header class="top">
+  <a class="back" href="../">&larr; Roberto Bloom</a>
+  <h1>Capture planner</h1>
+  <p class="sub">Draw an area or set a point of interest, pick a camera, and the planner turns capture standards (GSD, overlap, altitude tiers, obliques) into flight lines, photo stations, battery count and an exportable DJI mission. Static page; nothing leaves your browser.</p>
+</header>
+
+<div class="grid">
+
+<!-- ================= Controls ================= -->
+<div class="controls">
+
+  <div class="panel">
+    <h2>Mission</h2>
+    <div class="radios" id="missionType">
+      <label><input type="radio" name="mission" value="nadir" checked> Nadir grid</label>
+      <label><input type="radio" name="mission" value="double"> Double grid</label>
+      <label><input type="radio" name="mission" value="ring"> Splat ring</label>
+    </div>
+    <p class="hint" id="missionHint">Parallel lines, camera straight down. The standard for orthomosaics and DSMs.</p>
+
+    <div id="gridInputs">
+      <div class="radios">
+        <label><input type="radio" name="drive" value="gsd" checked> Target GSD</label>
+        <label><input type="radio" name="drive" value="alt"> Set altitude</label>
+      </div>
+      <div class="row">
+        <div class="field"><label for="gsd">GSD <span class="unit">cm/px</span></label><input id="gsd" type="number" step="0.1" min="0.1" value="2.5"></div>
+        <div class="field"><label for="alt">Altitude AGL <span class="unit">m</span></label><input id="alt" type="number" step="1" min="5" value="94"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="front">Front overlap <span class="unit">%</span></label><input id="front" type="number" step="1" min="30" max="95" value="75"></div>
+        <div class="field"><label for="side">Side overlap <span class="unit">%</span></label><input id="side" type="number" step="1" min="30" max="95" value="65"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="speed">Speed <span class="unit">m/s</span></label><input id="speed" type="number" step="0.5" min="0.5" max="20" value="8"></div>
+        <div class="field"><label for="heading">Line heading <span class="unit">°</span></label><input id="heading" type="number" step="1" min="0" max="359" value="0"></div>
+      </div>
+      <div class="btns"><button type="button" id="alignBtn">Align to longest edge</button></div>
+    </div>
+
+    <div id="ringInputs" hidden>
+      <p class="hint">Concentric orbits around a point of interest. Each tier aims at the POI, so the radius follows from altitude and pitch. Alternating direction per tier keeps transitions short.</p>
+      <table class="tiers" id="tierTable">
+        <thead><tr><th>Tier</th><th>Alt AGL m</th><th>Pitch °</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="btns" style="margin-bottom:10px"><button type="button" id="addTier">Add tier</button><button type="button" id="resetTiers">Standard 3 tiers</button></div>
+      <div class="row">
+        <div class="field"><label for="poiH">POI height <span class="unit">m above ground</span></label><input id="poiH" type="number" step="0.5" min="0" value="4"></div>
+        <div class="field"><label for="ringOverlap">Overlap along ring <span class="unit">%</span></label><input id="ringOverlap" type="number" step="1" min="30" max="95" value="80"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="ringSpeed">Speed <span class="unit">m/s</span></label><input id="ringSpeed" type="number" step="0.5" min="0.5" max="15" value="3"></div>
+        <div class="field"><label for="minPhotos">Min photos per ring</label><input id="minPhotos" type="number" step="1" min="8" max="120" value="24"></div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Advanced: batteries, turns, shutter</summary>
+      <div class="row">
+        <div class="field"><label for="usable">Usable minutes per battery</label><input id="usable" type="number" step="1" min="5" max="60" value="22"></div>
+        <div class="field"><label for="turnTime">Turn time per line <span class="unit">s</span></label><input id="turnTime" type="number" step="1" min="0" max="30" value="6"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="dwell">Ring dwell per photo <span class="unit">s</span></label><input id="dwell" type="number" step="0.5" min="0" max="10" value="2"></div>
+        <div class="field"><label for="minInterval">Camera min interval <span class="unit">s</span></label><input id="minInterval" type="number" step="0.1" min="0.1" max="10" value="0.7"></div>
+      </div>
+      <p class="hint">Usable minutes = rated endurance minus climb, transit and a 25–30% landing reserve. 22 min is a realistic working figure for a Mavic 3E rated at 45.</p>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2>Camera</h2>
+    <div class="row one"><div class="field"><select id="camera" aria-label="Camera preset"></select></div></div>
+    <p class="hint" id="camNote"></p>
+    <div class="row three">
+      <div class="field"><label for="sensorW">Sensor W <span class="unit">mm</span></label><input id="sensorW" type="number" step="0.01" min="1"></div>
+      <div class="field"><label for="sensorH">Sensor H <span class="unit">mm</span></label><input id="sensorH" type="number" step="0.01" min="1"></div>
+      <div class="field"><label for="focal">Focal <span class="unit">mm</span></label><input id="focal" type="number" step="0.01" min="1"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="pxW">Image width <span class="unit">px</span></label><input id="pxW" type="number" step="1" min="100"></div>
+      <div class="field"><label for="pxH">Image height <span class="unit">px</span></label><input id="pxH" type="number" step="1" min="100"></div>
+    </div>
+    <p class="hint" id="fovLine"></p>
+  </div>
+
+  <div class="panel export">
+    <h2>Export</h2>
+    <div class="row one"><div class="field"><label for="author">Mission name / author</label><input id="author" type="text" value="capture-planner" maxlength="60"></div></div>
+    <div class="row one" id="wpmlModeRow">
+      <div class="field"><label for="wpmlMode">WPML waypoint style</label>
+        <select id="wpmlMode">
+          <option value="lineEnds">Line endpoints + distance-triggered photos (compact)</option>
+          <option value="perPhoto">One waypoint per photo (explicit)</option>
+        </select>
+      </div>
+    </div>
+    <div class="btns">
+      <button type="button" id="exportKML">KML route</button>
+      <button type="button" id="exportWPML" class="primary">DJI WPML KMZ</button>
+      <button type="button" id="exportCSV">CSV photo points</button>
+    </div>
+    <p class="note" id="wpmlNote"><b>Planning aid only.</b> Open the KMZ in DJI Pilot 2 (or FlightHub 2), check heights against terrain and obstacles, confirm the aircraft and payload enums match your drone, and walk the route on the map before arming. Heights are relative to the take-off point.</p>
+  </div>
+
+</div>
+
+<!-- ================= Map + outputs ================= -->
+<div class="mapcol">
+  <div class="maptools">
+    <button type="button" id="drawBtn">Draw area</button>
+    <button type="button" id="finishBtn" disabled>Finish</button>
+    <button type="button" id="poiBtn">Set POI</button>
+    <button type="button" id="clearBtn">Clear</button>
+    <label class="btn" for="fileIn" style="margin:0">Import KML / KMZ / GeoJSON</label>
+    <input id="fileIn" type="file" accept=".kml,.kmz,.geojson,.json" hidden>
+    <button type="button" id="fitBtn">Fit</button>
+    <span class="status" id="status"></span>
+  </div>
+  <div id="map" role="application" aria-label="Mission map"></div>
+  <p class="maphelp">Click to add vertices, drag to move them, right-click a vertex to remove it. Finish or double-click to close the area. Imagery is USGS; OSM is in the layer control and loads automatically if USGS tiles fail.</p>
+
+  <div class="panel">
+    <h2>Plan</h2>
+    <div class="stats" id="stats"></div>
+    <div id="tierOut"></div>
+    <div class="warnings" id="warnings"></div>
+    <div class="ok" id="okline" hidden>Within Part 107 altitude and camera interval limits.</div>
+  </div>
+</div>
+
+</div><!-- /grid -->
+
+<hr>
+
+<h2>Why these defaults</h2>
+<div class="notes">
+
+  <div>
+    <h3>Photogrammetry vs splats</h3>
+    <p>A nadir grid at 75% front and 65% side overlap gives the bundle adjustment what it needs for an orthomosaic and a DSM: every ground point in roughly nine frames, strong along-track geometry, little wasted flight time. That is the mapping default and it is still right for maps.</p>
+    <p>Gaussian splatting is a different problem. It is optimised to reproduce <em>appearance from the viewpoints it was trained on</em>. A model built from nadir frames looks fine from above and falls apart the moment you orbit it: vertical faces, undersides of canopy and anything that was only ever seen edge-on turn into smeared, floating Gaussians. The fix is to fly the viewpoints the viewer will use, which means obliques, at several heights, all the way around.</p>
+    <p>So the splat preset raises overlap to 80/70 or higher and adds the ring. More overlap because Structure-from-Motion has to register oblique frames whose scale changes across the image, and because splat training is unforgiving of pose error. Rings at several tiers because one tier leaves a band of the object seen from only one elevation angle. Rings at a shallow pitch (about 30°) see the sides; steep tiers (60–70°) tie the sides to the top; a nadir pass over the same site is still worth flying for scale and for the ground.</p>
+  </div>
+
+  <div>
+    <h3>Height tiers and pitch</h3>
+    <figure class="diagram">
+      <svg viewBox="0 0 560 230" xmlns="http://www.w3.org/2000/svg" font-family="Menlo,Consolas,monospace" font-size="11" role="img" aria-labelledby="tiers-title">
+        <title id="tiers-title">Three oblique ring tiers around a point of interest: a low tier at about −30° pitch that sees the sides, a mid tier at about −45°, and a high tier at −60° to −70° under the 400 ft Part 107 ceiling, plus a nadir grid for scale, ground and the top.</title>
+        <line x1="20" y1="200" x2="540" y2="200" stroke="var(--rule)" stroke-width="1.5"/>
+        <rect x="262" y="150" width="36" height="50" fill="var(--box)" stroke="var(--rule)"/>
+        <ellipse cx="280" cy="140" rx="34" ry="26" fill="var(--box)" stroke="var(--rule)"/>
+        <text x="280" y="218" fill="var(--faint)" text-anchor="middle">point of interest</text>
+        <!-- tier 1 -->
+        <g>
+          <line x1="100" y1="150" x2="270" y2="165" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>
+          <circle cx="100" cy="150" r="4" fill="var(--accent)"/>
+          <text x="92" y="140" fill="var(--ink)" text-anchor="end">tier 1</text>
+          <text x="92" y="154" fill="var(--faint)" text-anchor="end">low, pitch about -30°</text>
+          <text x="92" y="168" fill="var(--faint)" text-anchor="end">sees the sides</text>
+        </g>
+        <!-- tier 2 -->
+        <g>
+          <line x1="160" y1="80" x2="275" y2="160" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>
+          <circle cx="160" cy="80" r="4" fill="var(--accent)"/>
+          <text x="150" y="70" fill="var(--ink)" text-anchor="end">tier 2</text>
+          <text x="150" y="84" fill="var(--faint)" text-anchor="end">mid, about -45°</text>
+        </g>
+        <!-- tier 3 -->
+        <g>
+          <line x1="230" y1="28" x2="278" y2="150" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>
+          <circle cx="230" cy="28" r="4" fill="var(--accent)"/>
+          <text x="220" y="22" fill="var(--ink)" text-anchor="end">tier 3</text>
+          <text x="220" y="36" fill="var(--faint)" text-anchor="end">high, -60° to -70°</text>
+        </g>
+        <!-- nadir -->
+        <g>
+          <line x1="400" y1="30" x2="400" y2="195" stroke="var(--faint)" stroke-width="1" stroke-dasharray="2 4"/>
+          <circle cx="400" cy="30" r="4" fill="var(--faint)"/>
+          <text x="410" y="26" fill="var(--ink)">nadir grid</text>
+          <text x="410" y="40" fill="var(--faint)">scale, ground, top</text>
+        </g>
+        <!-- 400 ft line -->
+        <line x1="20" y1="12" x2="540" y2="12" stroke="var(--err)" stroke-width="1" stroke-dasharray="6 4" opacity=".7"/>
+        <text x="538" y="9" fill="var(--err)" text-anchor="end" opacity=".9">400 ft AGL (Part 107)</text>
+      </svg>
+      <figcaption>Each tier aims at the point of interest; the planner derives the radius from altitude and pitch.</figcaption>
+    </figure>
+    <p>The tiers come from the field standard my team flew: a low obstacle-clearance tier set by the tallest thing on site plus margin, a mid tier, and a high tier under the 400 ft ceiling. Pitch gets steeper as you climb so every tier is still looking at the object rather than past it. The POI height matters: aim at the middle of a tree, not its base, or the low ring photographs trunk and grass.</p>
+    <p>Keep the orbit speed low (2–4 m/s) and the stop-and-go turn mode on. Obliques at speed smear more than nadir frames because the far edge of the frame is moving faster across the sensor than the near edge.</p>
+  </div>
+
+  <div>
+    <h3>GSD and what vegetation work needs</h3>
+    <table>
+      <tr><th>Task</th><th>GSD that works</th><th>M3E altitude</th></tr>
+      <tr><td>Fuel-load mapping, canopy extent</td><td>5–8 cm/px</td><td>190–300 m (over the ceiling; split or accept 120 m)</td></tr>
+      <tr><td>Orthomosaic, DSM, crown delineation</td><td>2.5–3 cm/px</td><td>94–113 m</td></tr>
+      <tr><td>Species, stress, dead-vs-live splits</td><td>1.5–2 cm/px</td><td>56–75 m</td></tr>
+      <tr><td>Stem counts, DBH from a splat, defect inspection</td><td>&le;1 cm/px</td><td>&le;38 m</td></tr>
+    </table>
+    <p>GSD is the pixel's footprint on the ground, not the smallest thing you can detect. Reliably identifying a feature needs it to span several pixels, so a 2 cm branch needs about 0.5–0.7 cm GSD. For a Mavic 3E, 2.7 cm/px at 100 m; halve the altitude and you halve the GSD but quadruple the photo count.</p>
+    <p>The warning fires at 400 ft AGL, which caps the Mavic 3E at about 3.2 cm/px. Terrain changes AGL under you; the exported heights are relative to take-off, so on sloped sites use terrain-follow in Pilot 2 or plan from the highest ground.</p>
+  </div>
+
+  <div>
+    <h3>Lighting, RTK, shutter</h3>
+    <p><b>Lighting.</b> Flat, bright overcast is the best light for splats and for anything you intend to classify: no hard shadows to bake into the model, no exposure swings between lines. In clear weather fly within about two hours either side of solar noon so shadows are short and stable, and never straddle the moment sun comes out or goes in. Multispectral adds a calibration panel capture before and after, and a stricter window near noon so irradiance is steady.</p>
+    <p><b>RTK.</b> Standard GNSS tags each frame to 2–5 m; RTK brings it to 1–3 cm. For the Sim3 fit that places a reconstruction on Earth that is the difference between a fit you can trust and one you have to check with ground control. Even without a base station, enable RTK with a network service if coverage allows. The WPML template marks positioning as GPS unless you toggle RTK in the export.</p>
+    <p><b>Shutter.</b> The 0.7 s minimum interval is the mechanical shutter on the M3E class. The planner caps speed so photo spacing never asks for less. Electronic-shutter cameras (M4T wide, consumer Mavics) take photos faster but skew moving scenes; fly them slower rather than faster.</p>
+  </div>
+
+</div>
+
+<hr>
+
+<footer>
+  <p><a href="../">&larr; Roberto Bloom</a> &middot; <a href="tests.html">maths tests</a> &middot; Leaflet 1.9.4, JSZip 3.10.1, USGS National Map imagery, OpenStreetMap.</p>
+  <p>This page plans. It does not know about terrain, airspace, obstacles, or your aircraft's current firmware. Check LAANC, check the site, and review every exported mission in DJI Pilot 2 before you arm.</p>
+</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="planner.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

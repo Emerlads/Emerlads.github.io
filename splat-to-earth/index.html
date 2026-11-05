@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Splat to Earth</title>
+<meta name="description" content="A drone Gaussian splat placed at true latitude, longitude and height in CesiumJS, checked against USGS 3DEP lidar. Toggle the vertical datum and watch it sink 34 m.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Widgets/widgets.css">
+<style>
+:root{
+  --paper:#fbfaf7; --ink:#232220; --soft:#5c5954; --faint:#8a8681;
+  --rule:#ddd8cf; --accent:#7a4a2b; --box:#f4f1ea; --good:#2f7a4a; --bad:#a8402c;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --mono:"SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+}
+html[data-theme="dark"]{
+  --paper:#16161a; --ink:#e6e2da; --soft:#a9a49b; --faint:#847f76;
+  --rule:#2f2f35; --accent:#d99b6c; --box:#1e1e23; --good:#6cc08b; --bad:#e08a72;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]){
+    --paper:#16161a; --ink:#e6e2da; --soft:#a9a49b; --faint:#847f76;
+    --rule:#2f2f35; --accent:#d99b6c; --box:#1e1e23; --good:#6cc08b; --bad:#e08a72;
+  }
+}
+html{color-scheme:light dark}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:17px/1.6 var(--serif);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)} a:hover{color:var(--ink)}
+.w{max-width:700px;margin:0 auto;padding:0 20px}
+nav{padding:16px 20px;font-size:15px;color:var(--faint);display:flex;justify-content:space-between;gap:12px}
+#stage{position:relative;height:72vh;min-height:420px;background:#0d0d10}
+#cesium{position:absolute;inset:0}
+#panel{position:absolute;left:14px;top:14px;width:300px;max-width:calc(100% - 28px);background:color-mix(in srgb,var(--paper) 92%,transparent);
+  border:1px solid var(--rule);border-radius:6px;padding:14px 16px;font-size:14.5px;line-height:1.45;backdrop-filter:blur(6px)}
+#panel h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin-bottom:2px}
+#panel .sub{color:var(--faint);font-style:italic;margin-bottom:12px;font-size:14px}
+.lbl{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:12px 0 6px}
+.seg{display:flex;flex-direction:column;gap:5px}
+.seg button{all:unset;cursor:pointer;border:1px solid var(--rule);border-radius:4px;padding:6px 9px;font-size:14px;background:var(--box)}
+.seg button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.seg button:focus-visible{outline:2px solid var(--accent)}
+.seg small{display:block;color:var(--faint);font-size:12.5px}
+#readout{font-family:var(--mono);font-size:12.5px;margin-top:10px;padding:8px 10px;background:var(--box);border-radius:4px}
+#readout b{font-weight:600}
+.ok{color:var(--good)} .no{color:var(--bad)}
+.toggles label{display:block;font-size:14px;cursor:pointer}
+#hide{all:unset;cursor:pointer;font-size:12.5px;color:var(--faint);float:right}
+#panel.min > :not(h1):not(#hide){display:none}
+#legend{position:absolute;right:14px;bottom:30px;font-size:12.5px;background:color-mix(in srgb,var(--paper) 90%,transparent);
+  border:1px solid var(--rule);border-radius:4px;padding:6px 9px;line-height:1.5}
+#legend .aud{display:none} #legend.show-aud .aud{display:block}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+article{padding:34px 0 60px}
+article h2{font-size:13.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin:34px 0 14px}
+article p{margin-bottom:14px}
+table{border-collapse:collapse;width:100%;font-size:15px;margin:8px 0 18px}
+td,th{border-bottom:1px solid var(--rule);padding:7px 6px;text-align:left;vertical-align:top}
+th{font-weight:600;font-size:13px;color:var(--faint);letter-spacing:.04em}
+td.n{font-family:var(--mono);font-size:13.5px;white-space:nowrap}
+.aside{background:var(--box);border-radius:3px;padding:13px 17px;margin:18px 0;font-size:15.5px}
+pre{background:var(--box);border-left:2px solid var(--rule);padding:12px 15px;overflow-x:auto;margin:14px 0;font:12.5px/1.6 var(--mono)}
+footer{border-top:1px solid var(--rule);padding:22px 0 50px;font-size:14px;color:var(--faint)}
+.cesium-viewer-bottom{display:block}
+@media(max-width:620px){
+  #stage{height:78vh}
+  #panel{top:auto;bottom:10px;left:10px;width:calc(100% - 20px);max-height:46%;overflow:auto}
+  #legend{display:none}
+  td.n{white-space:normal}
+}
+</style>
+</head>
+<body>
+<nav><a href="../">← Roberto Bloom</a><span><a href="https://github.com/Emerlads/georef-splat-tools">Source on GitHub</a></span></nav>
+
+<div id="stage">
+  <div id="cesium"></div>
+  <div id="panel">
+    <button id="hide" aria-expanded="true">hide</button>
+    <h1>Splat to Earth</h1>
+    <div class="sub">Drone Gaussian splat at true lat, lon and height</div>
+
+    <div class="lbl">GPS altitude interpreted as</div>
+    <div class="seg" role="group" aria-label="Vertical datum">
+      <button data-mode="captured" aria-pressed="true">Ellipsoidal, as captured<small>What the camera actually recorded</small></button>
+      <button data-mode="anchored" aria-pressed="false">Anchored to USGS 3DEP<small>Removes the GPS height bias</small></button>
+      <button data-mode="wrong" aria-pressed="false">Geoid misapplied<small>Treating it as sea-level height</small></button>
+    </div>
+    <div id="readout">loading…</div>
+
+    <div class="lbl">Layers</div>
+    <div class="toggles">
+      <label><input type="checkbox" id="tSplat" checked> Gaussian splat</label>
+      <label><input type="checkbox" id="tCams" checked> Camera positions (76)</label>
+      <label><input type="checkbox" id="tChk" checked> 3DEP lidar checkpoints</label>
+      <label><input type="checkbox" id="tAudit"> Geometry audit (splat vs MVS)</label>
+    </div>
+  </div>
+  <div id="legend">
+    <div><span class="dot" style="background:#ffd166"></span>Camera, solved position</div>
+    <div><span class="dot" style="background:#4cc9f0"></span>3DEP ground checkpoint</div>
+    <div class="aud"><span class="dot" style="background:#3caa6e"></span>Audit: splat surface consistent</div>
+    <div class="aud"><span class="dot" style="background:#f0be3c"></span>Audit: 1–2.5 m off</div>
+    <div class="aud"><span class="dot" style="background:#e63c3c"></span>Audit: floating &gt; 2.5 m</div>
+  </div>
+</div>
+
+<div class="w"><article>
+  <p>This is a public drone survey of Aukerman Park, Ohio (77 photos, OpenDroneMap sample data, CC0). It was reconstructed with COLMAP, aligned to the camera GPS in a local East-North-Up frame, trained as a Gaussian splat in Nerfstudio, and written to 3D Tiles with an SPZ-compressed <code>KHR_gaussian_splatting</code> converter I wrote. Nothing was nudged into place by hand: the model's position comes entirely from the maths below.</p>
+
+  <h2>The 34-metre trap</h2>
+  <p>GPS height is measured from the WGS84 <em>ellipsoid</em>, a smooth mathematical surface. Maps and terrain models usually use height above <em>mean sea level</em>, which follows the geoid. In this part of Ohio the geoid sits <b id="nVal">33.9 m</b> below the ellipsoid.</p>
+  <p>EXIF doesn't say which one a drone wrote, and vendors differ. Pick wrong and the model sinks or floats by the full geoid height. The horizontal fit still looks perfect, so nothing warns you. Use the third button above to see it.</p>
+  <div class="aside">This camera wrote <b>ellipsoidal</b> heights. I didn't assume that; I tested it. Against USGS 3DEP lidar the GPS-only model sits 1.3 m low. With the geoid applied it would sit 35 m low.</div>
+
+  <h2>Accuracy, stated carefully</h2>
+  <table>
+    <tr><th>Measure</th><th>Value</th><th>What it is</th></tr>
+    <tr><td>Camera fit residual</td><td class="n" id="mFit">–</td><td>How well 76 solved cameras agree with the GPS they were fitted to. A quality check, not accuracy.</td></tr>
+    <tr><td>Vertical vs 3DEP lidar</td><td class="n" id="mV">–</td><td>Independent: SfM ground points vs USGS bare-earth lidar, converted with NOAA GEOID18.</td></tr>
+    <tr><td>Vertical, 3DEP-anchored</td><td class="n" id="mA">0.74 m RMSE</td><td>Bias fitted on half the checkpoints, scored on the other half (200 random splits, median).</td></tr>
+    <tr><td>Horizontal vs independent</td><td class="n">not claimed</td><td>Visually consistent with USGS NAIP to within a few metres. Automated image matching was inconclusive because the field changed between the 2016 flight and current NAIP. Needs surveyed ground control.</td></tr>
+  </table>
+  <p>The camera is a 2016 consumer point-and-shoot, so metre-level GPS is the expected ceiling. The point is that every number above is measured, labelled, and reproducible from public data.</p>
+
+  <h2>Where the splat is lying</h2>
+  <p>A splat is trained to <em>look</em> right from the camera positions, not to put its surface in the right place. On low-texture ground like this mown field, it can reproduce the grass colour with Gaussians floating well above the real ground. From above it looks like a perfect orthophoto. Tilt the view and the field turns into a dark haze: you're looking through those floaters.</p>
+  <p>So I audit it. The splat is rendered straight down by alpha compositing, the way a viewer would draw it, and compared on a 0.5 m grid with COLMAP multi-view stereo from the same photos. Both surfaces are also checked against USGS 3DEP lidar at the same ground checkpoints, picked from the sparse SfM points independently of either surface. Turn on <b>Geometry audit</b> in the panel to see the result.</p>
+  <table>
+    <tr><th>Surface</th><th>At ground checkpoints, vs 3DEP lidar</th><th>Splat surface &gt; 2.5 m above stereo</th></tr>
+    <tr><td>COLMAP multi-view stereo</td><td class="n">+0.48 m median, 0.72 m RMSE (n=36)</td><td class="n">n/a</td></tr>
+    <tr><td>Splat, standard (sparse tie-point start)</td><td class="n">+8.5 m median, 19.1 m RMSE (n=26)</td><td class="n">70%</td></tr>
+    <tr><td>Splat, started from the stereo cloud <b>(shown)</b></td><td class="n">+3.2 m median, 9.8 m RMSE (n=22)</td><td class="n">54%</td></tr>
+  </table>
+  <p>The standard splat floats over most of the site, and it's no better on open ground (68% floating) than over tree canopy (75%). That's after the delivery filter already removed floaters more than 32 m up. Starting training from the stereo cloud instead of the sparse tie points, with the same photos and the same settings, <b>cut the floating surface from 70% to 54% and halved the height error</b>. That's better, but still not a measurement surface. Uncoloured cells in the audit layer are where the stereo cloud has no data to compare against. Anyone measuring heights, clearances or volumes off a splat inherits that error silently. That's why the <a href="../defensible-space/">defensible-space screener</a> measures from the stereo cloud and uses the splat only for visuals. The capture fix is <a href="../capture-planner/">oblique orbits</a>; this flight was nadir-only.</p>
+
+  <h2>Pipeline</h2>
+<pre>77 photos (EXIF GPS)
+ → COLMAP SfM                       76/77 registered, 1.24 px reprojection
+ → georef-splat align               RANSAC Sim3 → local ENU metres
+ → COLMAP multi-view stereo         dense, photo-consistent surface (checked vs lidar)
+ → Nerfstudio splatfacto            initialised from stereo, trained in the aligned frame
+ → georef-splat tiles               SPZ v2 + SH → 3D Tiles 1.1 (axes on the glTF node)
+ → vertical_check.py                3DEP + GEOID18 independent check
+ → georef-splat audit               splat vs stereo vs lidar, cell by cell
+ → CesiumJS                         root transform = ENU→ECEF at the origin</pre>
+  <p>Code, tests and reproduction steps: <a href="https://github.com/Emerlads/georef-splat-tools">github.com/Emerlads/georef-splat-tools</a>.</p>
+  <footer>Imagery: USGS National Map and NAIP (public domain). Drone data: OpenDroneMap <code>odm_data_aukerman</code>, CC0. Lidar: USGS 3DEP. Geoid: NOAA NGS GEOID18.</footer>
+</article></div>
+
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js"></script>
+<script>
+// Optional: a free, URL-restricted Cesium ion token adds world terrain. Without it
+// the globe is a plain ellipsoid, and the 3DEP checkpoints act as the ground truth.
+const ION_TOKEN = "";
+
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const fmt = (v, d = 2) => (v >= 0 ? "+" : "") + v.toFixed(d);
+  const [meta, cams, chk] = await Promise.all(
+    ["data/meta.json", "data/cameras.json", "data/checkpoints.json"].map((u) => fetch(u).then((r) => r.json()))
+  );
+
+  // Without a terrain service, drape imagery on a flat local surface just under the
+  // model's ground, instead of on the bare ellipsoid 240 m below. It is a backdrop
+  // only; the 3DEP checkpoints (blue) are the vertical reference.
+  const groundEllipsoidal = meta.origin.h + meta.ground_enu_z;
+  const backdrop = groundEllipsoidal - 1.2;
+  let terrain = new Cesium.CustomHeightmapTerrainProvider({
+    width: 2, height: 2, callback: () => new Float32Array([backdrop, backdrop, backdrop, backdrop]),
+  });
+  if (ION_TOKEN) {
+    Cesium.Ion.defaultAccessToken = ION_TOKEN;
+    try { terrain = await Cesium.createWorldTerrainAsync(); } catch (e) { console.warn(e); }
+  }
+  const viewer = new Cesium.Viewer("cesium", {
+    terrainProvider: terrain,
+    baseLayer: new Cesium.ImageryLayer(new Cesium.UrlTemplateImageryProvider({
+      url: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
+      maximumLevel: 16, credit: "USGS The National Map",
+    })),
+    baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
+    navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: true,
+    infoBox: false, selectionIndicator: false,
+  });
+  window.viewer = viewer;
+  // Sharper USGS NAIP (~0.5 m, public domain) around the site, pre-fetched as one image
+  // because the live WMS takes seconds per tile.
+  const nb = await fetch("data/naip.json").then((r) => r.json());
+  viewer.imageryLayers.addImageryProvider(await Cesium.SingleTileImageryProvider.fromUrl("data/naip.jpg", {
+    rectangle: Cesium.Rectangle.fromDegrees(nb.west, nb.south, nb.east, nb.north), credit: "USGS NAIP",
+  }));
+  viewer.scene.globe.depthTestAgainstTerrain = false;
+  viewer.scene.skyAtmosphere.show = true;
+
+  const o = meta.origin;
+  const originCart = Cesium.Cartesian3.fromDegrees(o.lon, o.lat, o.h);
+  const enuToEcef = Cesium.Transforms.eastNorthUpToFixedFrame(originCart);
+  const up = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(originCart, new Cesium.Cartesian3());
+  const enuPoint = (e) => Cesium.Matrix4.multiplyByPoint(enuToEcef, new Cesium.Cartesian3(e[0], e[1], e[2]), new Cesium.Cartesian3());
+
+  const tileset = await Cesium.Cesium3DTileset.fromUrl("data/tiles/tileset.json", { maximumScreenSpaceError: 1 });
+  viewer.scene.primitives.add(tileset);
+
+  // Camera positions move with the reconstruction; checkpoints are fixed truth.
+  const camPts = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+  const camBase = cams.map((c) => enuPoint(c.enu));
+  camBase.forEach((p) => camPts.add({ position: p, pixelSize: 7, color: Cesium.Color.fromCssColorString("#ffd166"), outlineColor: Cesium.Color.BLACK, outlineWidth: 1 }));
+  const chkPts = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+  chk.forEach((c) => chkPts.add({
+    position: Cesium.Cartesian3.fromDegrees(c.lon, c.lat, c.h_ref),
+    pixelSize: 8, color: Cesium.Color.fromCssColorString("#4cc9f0"), outlineColor: Cesium.Color.BLACK, outlineWidth: 1,
+    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+  }));
+
+  const modes = {
+    captured: { dz: 0, text: "GPS heights used as recorded." },
+    anchored: { dz: -meta.vertical.bias_m, text: "Shifted by the 3DEP-measured GPS bias." },
+    wrong: { dz: meta.geoid_undulation_m, text: "Geoid correction applied to a height that didn't need it." },
+  };
+  const scratch = new Cesium.Cartesian3();
+  function setMode(name) {
+    const m = modes[name];
+    document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === name)));
+    const shift = Cesium.Cartesian3.multiplyByScalar(up, m.dz, scratch);
+    tileset.modelMatrix = Cesium.Matrix4.fromTranslation(shift);
+    for (let i = 0; i < camPts.length; i++) camPts.get(i).position = Cesium.Cartesian3.add(camBase[i], shift, new Cesium.Cartesian3());
+    const err = meta.vertical.bias_m + m.dz;
+    const good = Math.abs(err) < 2;
+    $("readout").innerHTML =
+      `${m.text}<br>Model vs 3DEP ground: <b class="${good ? "ok" : "no"}">${fmt(err)} m</b>` +
+      `<br>Origin height: ${(o.h + m.dz).toFixed(2)} m (ellipsoidal)`;
+  }
+  document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  $("tSplat").onchange = (e) => (tileset.show = e.target.checked);
+  $("tCams").onchange = (e) => (camPts.show = e.target.checked);
+  $("tChk").onchange = (e) => (chkPts.show = e.target.checked);
+  let auditEnt = null;
+  $("tAudit").onchange = async (e) => {
+    $("legend").classList.toggle("show-aud", e.target.checked);
+    if (!auditEnt) {
+      const au = await fetch("data/audit/audit.json").then((r) => r.json());
+      auditEnt = viewer.entities.add({ rectangle: {
+        coordinates: Cesium.Rectangle.fromDegrees(au.overlay.west, au.overlay.south, au.overlay.east, au.overlay.north),
+        height: groundEllipsoidal + 0.5,
+        material: new Cesium.ImageMaterialProperty({ image: "data/audit/audit.png", transparent: true }),
+      } });
+    }
+    auditEnt.show = e.target.checked;
+    $("tSplat").checked = !e.target.checked;
+    tileset.show = !e.target.checked;
+  };
+  $("hide").onclick = (e) => {
+    const p = $("panel"); p.classList.toggle("min");
+    e.target.textContent = p.classList.contains("min") ? "show" : "hide";
+    e.target.setAttribute("aria-expanded", String(!p.classList.contains("min")));
+  };
+
+  $("nVal").textContent = Math.abs(meta.geoid_undulation_m).toFixed(1) + " m";
+  $("mFit").textContent = `${meta.fit.horizontal_rmse_m.toFixed(2)} m H / ${meta.fit.vertical_rmse_m.toFixed(2)} m V`;
+  $("mV").textContent = `${fmt(meta.vertical.bias_m)} m bias, ${meta.vertical.rmse_m.toFixed(2)} m RMSE (n=${meta.vertical.n})`;
+  setMode("captured");
+
+  // Oblique view from the south-west, looking at the model.
+  const target = enuPoint([0, 0, meta.ground_enu_z]);
+  viewer.camera.lookAt(target, new Cesium.HeadingPitchRange(Cesium.Math.toRadians(30), Cesium.Math.toRadians(-32), 420));
+  viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+})().catch((e) => {
+  console.error(e);
+  document.getElementById("readout").textContent = "Viewer failed to load: " + e.message;
+});
+</script>
+</body>
+</html>
