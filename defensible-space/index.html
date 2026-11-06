@@ -39,6 +39,10 @@ aside h1{font-size:21px;font-weight:600;letter-spacing:-.01em}
 .st td,.st th{padding:2px 3px;text-align:right;border-bottom:1px solid var(--rule)}
 .st th{color:var(--faint);font-weight:500} .st td:first-child,.st th:first-child{text-align:left}
 .flags{font-size:13px;color:var(--soft);margin-top:5px}
+.scenes{display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
+.scenes a{flex:1;min-width:130px;text-decoration:none;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;font-size:13.5px;background:var(--box)}
+.scenes a[aria-current="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.scenes small{display:block;color:var(--faint);font-size:12px}
 .chip{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;margin:8px 0 4px;border:1px solid var(--rule)}
 .btn{all:unset;cursor:pointer;display:inline-block;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:5px 10px;font-size:13.5px;margin-top:8px}
 .btn:hover{background:var(--accent);color:var(--paper)}
@@ -62,52 +66,67 @@ footer{border-top:1px solid var(--rule);padding-top:18px;font-size:14px;color:va
   <aside>
     <h1>Defensible Space Screener</h1>
     <div class="sub">Zone 0 / 1 / 2 measured from a drone survey</div>
+    <div class="scenes" role="group" aria-label="Scene">
+      <a data-scene="arboretum" href="?scene=arboretum">LA County Arboretum <small>14 buildings</small></a>
+      <a data-scene="aukerman" href="?scene=aukerman">Aukerman Park <small>1 shelter</small></a>
+    </div>
     <div class="legend">
       <span><i class="sw" style="background:#e6463c"></i>Structure</span>
       <span><i class="sw" style="background:#288c46"></i>Tree canopy</span>
       <span><i class="sw" style="background:#f0aa28"></i>Shrub / tall grass</span>
       <span><i class="sw" style="background:#8cbe5a"></i>Low vegetation</span>
-      <span><i class="sw" style="background:#965ad2"></i>Raised object</span>
+      <span><i class="sw" style="background:#965ad2"></i>Raised non-green (dry fuel or objects)</span>
     </div>
     <div class="toggles">
       <label><input type="checkbox" id="tSplat" checked> Gaussian splat</label>
       <label><input type="checkbox" id="tCls" checked> Classification</label>
       <label><input type="checkbox" id="tRings" checked> Zone rings (5 / 30 / 100 ft)</label>
     </div>
-    <div class="lbl">Structures, by priority</div>
+    <div class="lbl">Structures, highest fuel score first</div>
     <div id="list">loading…</div>
-    <a class="btn" href="data/zones.geojson" download>Download GeoJSON (ArcGIS / QGIS)</a>
+    <a class="btn" id="dl" href="data/arboretum/zones.geojson" download>Download GeoJSON (ArcGIS / QGIS)</a>
   </aside>
 </div>
 
 <div class="w">
-  <p>Drone inspections of defensible space usually mean a person scrolling through hundreds of photos. This page does the first pass automatically, from the same 77-photo survey used in <a href="../splat-to-earth/">Splat to Earth</a>. It needs no building footprints and no trained imagery model. Each flagged structure comes with the source photo that shows it best, with the detected footprint drawn on it.</p>
+  <p><b>The problem.</b> California now requires defensible space around homes: an ember-resistant Zone 0 within 5 ft, under the AB 3074 rule-making, and reduced fuel out to 100 ft. Insurers and fire-safe councils are being asked to check it. A drone can capture a neighbourhood in an hour, but then somebody has to scroll through thousands of photos, building by building.</p>
+  <p><b>What this does.</b> The first pass, automatically. It finds the buildings itself (no footprint data), measures fuel inside each ring, ranks the buildings for a human to review, and hands over a photo chip and a GeoJSON for each. Two scenes:</p>
+  <ul>
+    <li><b>LA County Arboretum</b> (default): 14 buildings inside a botanical garden, about 2.5 km south of the official perimeter of the January 2025 Eaton Fire (NIFC). It's a worst case by design: every building sits in planting, so the useful output is the <em>ranking</em>.</li>
+    <li><b>Aukerman Park</b>: one shelter in an open Ohio park, as a sanity check.</li>
+  </ul>
   <h2>Why the heights don't come from the splat</h2>
   <p>I started by measuring straight off the Gaussian splat. It doesn't work. Over this park, <b>70% of the splat's surface sits more than 2.5 m above the stereo surface</b>: floaters that reproduce the grass colour at the wrong depth. At independent ground checkpoints the splat reads a median 8.5 m high against USGS 3DEP lidar (19 m RMSE). COLMAP's multi-view stereo, from the same photos, reads <b>+0.48 m (0.72 m RMSE)</b>. Starting the splat from the stereo cloud halves its error, but that's still metres. A splat is a great way to look at a site and a risky way to measure one. The splat page has an audit layer that shows exactly where.</p>
   <h2>How it works</h2>
-  <p>A COLMAP multi-view-stereo cloud, already in the georeferenced frame, is gridded at 0.5 m into a surface model and a colour image. Ground comes from USGS 3DEP lidar, shifted into the survey's vertical frame by the bias measured on the splat page, with a smooth local correction capped at ±2 m. Height above ground plus a greenness index sort each cell into six classes: structure, tree canopy, shrub / tall grass, low vegetation, raised object and ground.</p>
-  <p>A structure is a flat, non-green component of at least 30 m² and at least 3 m wide that stands above its own surroundings. That last test, against the ground right next to it rather than the lidar, removed a raised footpath that otherwise looked like a building. Small objects that only look green at their edges (picnic tables, bins) become "raised objects": in Zone 0 those are worth a look for combustibles.</p>
+  <p>A photogrammetric dense cloud, already in the georeferenced frame, is gridded at 0.5 m into a surface model and a colour image. That's COLMAP multi-view stereo for Aukerman, and the RealityScan dense cloud for the Arboretum. Ground comes from USGS 3DEP lidar, shifted into the survey's vertical frame by the bias measured on the splat page, with a smooth local correction capped at ±2 m. Height above ground plus a greenness index sort each cell into six classes: structure, tree canopy, shrub / tall grass, low vegetation, raised object and ground.</p>
+  <p>A structure is a flat, non-green component of at least 30 m² and at least 3 m wide that stands above its own surroundings. That last test, against the ground right next to it rather than the lidar, removed a raised footpath that otherwise looked like a building. Raised material that isn't green becomes its own class. In Ohio that caught the wooden picnic tables. In an LA garden in late August it's mostly dry vegetation, which is the fuel that matters most. Either way, inside 5 ft it's worth a look.</p>
+  <p>Buildings are ranked by a simple, visible score: 3 × Zone 0 woody % + 2 × Zone 0 non-green % + Zone 1 canopy and shrub %, plus a quarter of Zone 2. It is a triage order, not a risk model.</p>
   <table class="z">
     <tr><th>Ring</th><th>Distance</th><th>Flagged when</th></tr>
-    <tr><td>Zone 0, ember-resistant</td><td>0–5 ft</td><td>woody vegetation &gt; 2% (review); raised objects &gt; 2% (watch)</td></tr>
+    <tr><td>Zone 0, ember-resistant</td><td>0–5 ft</td><td>woody vegetation &gt; 2% (review); raised non-green &gt; 2% (watch)</td></tr>
     <tr><td>Zone 1, lean, clean, green</td><td>5–30 ft</td><td>canopy &gt; 40% or shrub / tall grass &gt; 15%</td></tr>
     <tr><td>Zone 2, reduced fuel</td><td>30–100 ft</td><td>reported, not flagged</td></tr>
   </table>
   <p>The ring metrics also say how much of each ring the drone actually saw. "Not observed" isn't the same as "clear", and a screening tool should say so.</p>
-  <p>Here it finds the one building in the park, the shelter, and rates it <b>watch</b>: the wooden picnic tables sit in Zone 0, and a band of tall prairie grass reaches into Zone 1. That is what the photo shows.</p>
-  <div class="aside">This is a screening heuristic for deciding which properties a person should inspect first. It is not a compliance determination. The thresholds are parameters, the classes come from colour and geometry rather than a trained model, and the drone data here is a public park in Ohio, not a wildland-urban interface. The same pipeline is how I'd triage parcels for an insurer, a fire-safe council or a utility.</div>
+  <p>In Ohio it finds the one building in the park, the shelter, and rates it <b>watch</b>: wooden picnic tables in Zone 0 and a band of tall prairie grass in Zone 1. That is what the photo shows. At the Arboretum it finds 14 buildings and flags all 14 for review, which is correct for buildings set inside a garden. The ranking is what a reviewer would use: the top of the list has woody planting against the walls and closed canopy in Zone 1.</p>
+  <div class="aside">This is a screening heuristic for deciding which properties a person should inspect first. It is not a compliance determination. The thresholds are parameters, and the classes come from colour and geometry rather than a trained model. Arboretum chips are cut from the drone orthophoto; Aukerman's come from the best source photo.</div>
   <h2>Output</h2>
   <p>A GeoJSON with one footprint per structure and one ring polygon per zone, each carrying its metrics, ready for ArcGIS Pro, ArcGIS Online or QGIS. There's also a north-up classification PNG, a JSON summary and a photo chip per structure.</p>
 <pre>georef-splat zones --points fused.ply --manifest georeference_manifest.json \
     --ground 3dep --ground-offset -1.27 --crop-to-cameras 25 --out zones/</pre>
-  <footer>Drone data: OpenDroneMap <code>odm_data_aukerman</code>, CC0. Imagery: USGS National Map and NAIP. Bare earth: USGS 3DEP. Zone distances follow California PRC 4291 and the Zone 0 rule-making under AB 3074.</footer>
+  <footer>Drone data: LA County Arboretum, DJI Mavic 3M (used with permission); OpenDroneMap <code>odm_data_aukerman</code>, CC0. Imagery: USGS National Map and NAIP. Bare earth: USGS 3DEP. Zone distances follow California PRC 4291 and the Zone 0 rule-making under AB 3074.</footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js"></script>
 <script>
 (async () => {
+  const SCENE = new URLSearchParams(location.search).get("scene") === "aukerman" ? "aukerman" : "arboretum";
+  const S = SCENE === "aukerman" ? "../splat-to-earth/data/" : "../splat-to-earth/data/arboretum/";
+  const Z = SCENE === "aukerman" ? "data/" : "data/arboretum/";
+  document.querySelectorAll(".scenes a").forEach((a) => a.setAttribute("aria-current", String(a.dataset.scene === SCENE)));
+  document.getElementById("dl").href = Z + "zones.geojson";
   const [meta, summary, gj] = await Promise.all(
-    ["../splat-to-earth/data/meta.json", "data/zones_summary.json", "data/zones.geojson"].map((u) => fetch(u).then((r) => r.json()))
+    [S + "meta.json", Z + "zones_summary.json", Z + "zones.geojson"].map((u) => fetch(u).then((r) => r.json()))
   );
   const viewer = new Cesium.Viewer("cesium", {
     terrainProvider: new Cesium.EllipsoidTerrainProvider(),
@@ -122,12 +141,12 @@ footer{border-top:1px solid var(--rule);padding-top:18px;font-size:14px;color:va
   const groundH = (zEnu) => o.h + zEnu;
   const backdrop = o.h + meta.ground_enu_z - 1.2;
   viewer.terrainProvider = new Cesium.CustomHeightmapTerrainProvider({ width: 2, height: 2, callback: () => new Float32Array([backdrop, backdrop, backdrop, backdrop]) });
-  const nb = await fetch("../splat-to-earth/data/naip.json").then((r) => r.json());
-  viewer.imageryLayers.addImageryProvider(await Cesium.SingleTileImageryProvider.fromUrl("../splat-to-earth/data/naip.jpg", {
+  const nb = await fetch(S + "naip.json").then((r) => r.json());
+  viewer.imageryLayers.addImageryProvider(await Cesium.SingleTileImageryProvider.fromUrl(S + "naip.jpg", {
     rectangle: Cesium.Rectangle.fromDegrees(nb.west, nb.south, nb.east, nb.north), credit: "USGS NAIP",
   }));
 
-  const tileset = await Cesium.Cesium3DTileset.fromUrl("../splat-to-earth/data/tiles/tileset.json", { maximumScreenSpaceError: 1 });
+  const tileset = await Cesium.Cesium3DTileset.fromUrl(S + "tiles/tileset.json", { maximumScreenSpaceError: 1 });
   viewer.scene.primitives.add(tileset);
 
   const ov = summary.overlay;
@@ -135,7 +154,7 @@ footer{border-top:1px solid var(--rule);padding-top:18px;font-size:14px;color:va
     rectangle: {
       coordinates: Cesium.Rectangle.fromDegrees(ov.west, ov.south, ov.east, ov.north),
       height: groundH(ov.ground_z_enu) + 0.4,
-      material: new Cesium.ImageMaterialProperty({ image: "data/classes.png", transparent: true }),
+      material: new Cesium.ImageMaterialProperty({ image: Z + "classes.png", transparent: true }),
     },
   });
 
@@ -167,7 +186,7 @@ footer{border-top:1px solid var(--rule);padding-top:18px;font-size:14px;color:va
   const order = { review: 0, watch: 1, ok: 2 };
   const list = document.getElementById("list");
   list.innerHTML = "";
-  const sorted = [...summary.structures].sort((a, b) => order[a.priority] - order[b.priority] || b.footprint_area_m2 - a.footprint_area_m2);
+  const sorted = [...summary.structures].sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || order[a.priority] - order[b.priority]);
   if (!sorted.length) list.textContent = "No structures detected.";
   for (const s of sorted) {
     const z = s.zones;
@@ -175,9 +194,9 @@ footer{border-top:1px solid var(--rule);padding-top:18px;font-size:14px;color:va
     el.className = "st"; el.tabIndex = 0; el.setAttribute("role", "button");
     el.setAttribute("aria-label", `Fly to structure ${s.id}, priority ${s.priority}`);
     el.innerHTML = `<div class="hd"><b>Structure ${s.id}</b><span class="badge ${s.priority}">${s.priority}</span></div>
-      <div style="color:var(--faint);font-size:13px">${s.footprint_area_m2} m² · ${s.height_m} m tall</div>
-      <img class="chip" src="data/chips/structure_${s.id}.jpg" alt="Source drone photo of structure ${s.id} with its detected footprint outlined" onerror="this.remove()">
-      <table><tr><th>Ring</th><th>Tree %</th><th>Shrub %</th><th>Object %</th><th>Seen %</th></tr>
+      <div style="color:var(--faint);font-size:13px">${s.footprint_area_m2} m² · ${s.height_m} m tall${s.score != null ? ` · score ${s.score}` : ""}</div>
+      <img class="chip" src="${Z}chips/structure_${s.id}.jpg" alt="Drone image of structure ${s.id} with its detected footprint and Zone 0/1 rings outlined" loading="lazy" onerror="this.remove()">
+      <table><tr><th>Ring</th><th>Tree %</th><th>Shrub %</th><th>Non-green %</th><th>Seen %</th></tr>
       ${["zone0", "zone1", "zone2"].map((k) => `<tr><td>${z[k].inner_ft}–${z[k].outer_ft} ft</td><td>${z[k].tree_cover_pct}</td><td>${z[k].shrub_cover_pct}</td><td>${z[k].object_cover_pct ?? 0}</td><td>${z[k].observed_pct}</td></tr>`).join("")}
       </table>${s.flags.length ? `<div class="flags">${s.flags.join("<br>")}</div>` : ""}`;
     const fly = () => {

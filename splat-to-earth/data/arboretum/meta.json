@@ -1,0 +1,22 @@
+{
+ "dataset": "Los Angeles County Arboretum, DJI Mavic 3M RGB, 2,046 photos (used with permission)",
+ "origin": {
+  "lat": 34.14489031377117,
+  "lon": -118.05268057657563,
+  "h": 195.04643842680397
+ },
+ "geoid_undulation_m": -33.829,
+ "ground_enu_z": -68.291,
+ "fit": {
+  "cameras": 2046,
+  "horizontal_rmse_m": 0.08558544354763711,
+  "vertical_rmse_m": 0.4998599388148838,
+  "note": "Camera-prior fit residual: RealityScan's solved camera centres vs the raw EXIF GPS in each photo. Not independent checkpoint accuracy."
+ },
+ "vertical": {
+  "n": 59,
+  "bias_m": -0.42030168129659706,
+  "rmse_m": 0.7172876406001814,
+  "method": "SfM ground points vs USGS 3DEP bare-earth (EPQS) + NOAA GEOID18"
+ }
+}

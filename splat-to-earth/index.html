@@ -38,6 +38,9 @@ nav{padding:16px 20px;font-size:15px;color:var(--faint);display:flex;justify-con
 #panel .sub{color:var(--faint);font-style:italic;margin-bottom:12px;font-size:14px}
 .lbl{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:12px 0 6px}
 .seg{display:flex;flex-direction:column;gap:5px}
+.seg a.scene{text-decoration:none;color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:6px 9px;font-size:14px;background:var(--box)}
+.seg a.scene[aria-current="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.seg a.scene small{display:block;color:var(--faint);font-size:12.5px}
 .seg button{all:unset;cursor:pointer;border:1px solid var(--rule);border-radius:4px;padding:6px 9px;font-size:14px;background:var(--box)}
 .seg button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .seg button:focus-visible{outline:2px solid var(--accent)}
@@ -81,6 +84,12 @@ footer{border-top:1px solid var(--rule);padding:22px 0 50px;font-size:14px;color
     <h1>Splat to Earth</h1>
     <div class="sub">Drone Gaussian splat at true lat, lon and height</div>
 
+    <div class="lbl">Scene</div>
+    <div class="seg scenes" role="group" aria-label="Scene">
+      <a class="scene" data-scene="arboretum" href="?scene=arboretum">LA County Arboretum<small>2,046 RTK photos · photoreal splat</small></a>
+      <a class="scene" data-scene="aukerman" href="?scene=aukerman">Aukerman Park, Ohio<small>77 public photos · stress test</small></a>
+    </div>
+
     <div class="lbl">GPS altitude interpreted as</div>
     <div class="seg" role="group" aria-label="Vertical datum">
       <button data-mode="captured" aria-pressed="true">Ellipsoidal, as captured<small>What the camera actually recorded</small></button>
@@ -92,7 +101,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 50px;font-size:14px;color
     <div class="lbl">Layers</div>
     <div class="toggles">
       <label><input type="checkbox" id="tSplat" checked> Gaussian splat</label>
-      <label><input type="checkbox" id="tCams" checked> Camera positions (76)</label>
+      <label><input type="checkbox" id="tCams" checked> Camera positions (<span id="nCams">…</span>)</label>
       <label><input type="checkbox" id="tChk" checked> 3DEP lidar checkpoints</label>
       <label><input type="checkbox" id="tAudit"> Geometry audit (splat vs MVS)</label>
     </div>
@@ -107,7 +116,23 @@ footer{border-top:1px solid var(--rule);padding:22px 0 50px;font-size:14px;color
 </div>
 
 <div class="w"><article>
-  <p>This is a public drone survey of Aukerman Park, Ohio (77 photos, OpenDroneMap sample data, CC0). It was reconstructed with COLMAP, aligned to the camera GPS in a local East-North-Up frame, trained as a Gaussian splat in Nerfstudio, and written to 3D Tiles with an SPZ-compressed <code>KHR_gaussian_splatting</code> converter I wrote. Nothing was nudged into place by hand: the model's position comes entirely from the maths below.</p>
+  <p><b>The problem.</b> Drone teams can now make photoreal 3D models in an afternoon, but those models usually live in a trainer's private coordinate frame. You can't overlay them on a GIS map, measure them against parcels, or hand them to anyone who needs to know <em>where</em> something is. Getting them onto the Earth is fiddly, and getting it wrong is silent.</p>
+  <p><b>What this page shows.</b> Two drone splats placed at true latitude, longitude and height in CesiumJS, each checked against independent USGS data. Nothing was nudged into place by hand.</p>
+  <ul>
+    <li><b>LA County Arboretum</b>: 2,046 RTK photos from a DJI Mavic 3M, trained in Postshot and exported in its own swapped-axis frame. I recovered that frame by matching it to the dense cloud and chained it to GPS.</li>
+    <li><b>Aukerman Park, Ohio</b>: a deliberately weak public dataset (77 nadir photos from 2016, CC0) used to stress-test every step.</li>
+  </ul>
+
+  <h2>LA County Arboretum: results</h2>
+  <table>
+    <tr><th>Measure</th><th>Value</th><th>What it is</th></tr>
+    <tr><td>Camera fit</td><td class="n">0.09 m H / 0.50 m V</td><td>2,046 solved cameras vs the raw EXIF GPS in each photo (RTK). A quality check, not accuracy.</td></tr>
+    <tr><td>Vertical vs 3DEP lidar</td><td class="n">−0.42 m bias, 0.72 m RMSE (n=59)</td><td>Independent: ground from the dense cloud vs USGS bare-earth lidar + NOAA GEOID18.</td></tr>
+    <tr><td>Vertical, 3DEP-anchored</td><td class="n">0.59 m RMSE</td><td>Bias fitted on half the checkpoints, scored on the other half.</td></tr>
+    <tr><td>Splat frame → survey frame</td><td class="n">axes (x, z, −y), scale 0.998</td><td>Recovered by testing all 24 axis rotations against the dense cloud, then ICP.</td></tr>
+  </table>
+  <p>This drone also wrote <b>ellipsoidal</b> heights. Treating them as sea level would have put the whole garden 34 m underground. The next section shows that mistake happening, step by step, on the public dataset.</p>
+  <p style="color:var(--faint);font-size:15px">Everything below this point uses the Aukerman scene (switch scenes in the panel), because the public data lets anyone reproduce it.</p>
 
   <h2>The 34-metre trap</h2>
   <p>GPS height is measured from the WGS84 <em>ellipsoid</em>, a smooth mathematical surface. Maps and terrain models usually use height above <em>mean sea level</em>, which follows the geoid. In this part of Ohio the geoid sits <b id="nVal">33.9 m</b> below the ellipsoid.</p>
@@ -133,7 +158,7 @@ footer{border-top:1px solid var(--rule);padding:22px 0 50px;font-size:14px;color
     <tr><td>Splat, standard (sparse tie-point start)</td><td class="n">+8.5 m median, 19.1 m RMSE (n=26)</td><td class="n">70%</td></tr>
     <tr><td>Splat, started from the stereo cloud <b>(shown)</b></td><td class="n">+3.2 m median, 9.8 m RMSE (n=22)</td><td class="n">54%</td></tr>
   </table>
-  <p>The standard splat floats over most of the site, and it's no better on open ground (68% floating) than over tree canopy (75%). That's after the delivery filter already removed floaters more than 32 m up. Starting training from the stereo cloud instead of the sparse tie points, with the same photos and the same settings, <b>cut the floating surface from 70% to 54% and halved the height error</b>. That's better, but still not a measurement surface. Uncoloured cells in the audit layer are where the stereo cloud has no data to compare against. Anyone measuring heights, clearances or volumes off a splat inherits that error silently. That's why the <a href="../defensible-space/">defensible-space screener</a> measures from the stereo cloud and uses the splat only for visuals. The capture fix is <a href="../capture-planner/">oblique orbits</a>; this flight was nadir-only.</p>
+  <p>The standard splat floats over most of the site, and it's no better on open ground (68% floating) than over tree canopy (75%). That's after the delivery filter already removed floaters more than 32 m up. Starting training from the stereo cloud instead of the sparse tie points, with the same photos and the same settings, <b>cut the floating surface from 70% to 54% and halved the height error</b>. That's better, but still not a measurement surface. Uncoloured cells in the audit layer are where the stereo cloud has no data to compare against. Anyone measuring heights, clearances or volumes off a splat inherits that error silently. The Arboretum shows what a good capture buys: with 2,046 photos including obliques, the photoreal splat's open-ground surface sits at a median +0.03 m from the dense cloud, and only 32% of it floats. Still, its per-cell spread is metres, and over canopy it reads about 4 m low, where light passes through the leaves. That's why the <a href="../defensible-space/">defensible-space screener</a> measures from the stereo cloud and uses the splat only for visuals. The capture fix is <a href="../capture-planner/">oblique orbits</a>; this flight was nadir-only.</p>
 
   <h2>Pipeline</h2>
 <pre>77 photos (EXIF GPS)
@@ -158,9 +183,13 @@ const ION_TOKEN = "";
 (async () => {
   const $ = (id) => document.getElementById(id);
   const fmt = (v, d = 2) => (v >= 0 ? "+" : "") + v.toFixed(d);
+  const SCENE = new URLSearchParams(location.search).get("scene") === "aukerman" ? "aukerman" : "arboretum";
+  const D = SCENE === "aukerman" ? "data/" : "data/arboretum/";
+  document.querySelectorAll("a.scene").forEach((a) => a.setAttribute("aria-current", String(a.dataset.scene === SCENE)));
   const [meta, cams, chk] = await Promise.all(
-    ["data/meta.json", "data/cameras.json", "data/checkpoints.json"].map((u) => fetch(u).then((r) => r.json()))
+    [D + "meta.json", D + "cameras.json", D + "checkpoints.json"].map((u) => fetch(u).then((r) => r.json()))
   );
+  $("nCams").textContent = cams.length.toLocaleString();
 
   // Without a terrain service, drape imagery on a flat local surface just under the
   // model's ground, instead of on the bare ellipsoid 240 m below. It is a backdrop
@@ -187,8 +216,8 @@ const ION_TOKEN = "";
   window.viewer = viewer;
   // Sharper USGS NAIP (~0.5 m, public domain) around the site, pre-fetched as one image
   // because the live WMS takes seconds per tile.
-  const nb = await fetch("data/naip.json").then((r) => r.json());
-  viewer.imageryLayers.addImageryProvider(await Cesium.SingleTileImageryProvider.fromUrl("data/naip.jpg", {
+  const nb = await fetch(D + "naip.json").then((r) => r.json());
+  viewer.imageryLayers.addImageryProvider(await Cesium.SingleTileImageryProvider.fromUrl(D + "naip.jpg", {
     rectangle: Cesium.Rectangle.fromDegrees(nb.west, nb.south, nb.east, nb.north), credit: "USGS NAIP",
   }));
   viewer.scene.globe.depthTestAgainstTerrain = false;
@@ -200,13 +229,15 @@ const ION_TOKEN = "";
   const up = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(originCart, new Cesium.Cartesian3());
   const enuPoint = (e) => Cesium.Matrix4.multiplyByPoint(enuToEcef, new Cesium.Cartesian3(e[0], e[1], e[2]), new Cesium.Cartesian3());
 
-  const tileset = await Cesium.Cesium3DTileset.fromUrl("data/tiles/tileset.json", { maximumScreenSpaceError: 1 });
+  const tileset = await Cesium.Cesium3DTileset.fromUrl(D + "tiles/tileset.json", { maximumScreenSpaceError: 1 });
   viewer.scene.primitives.add(tileset);
 
   // Camera positions move with the reconstruction; checkpoints are fixed truth.
   const camPts = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
   const camBase = cams.map((c) => enuPoint(c.enu));
-  camBase.forEach((p) => camPts.add({ position: p, pixelSize: 7, color: Cesium.Color.fromCssColorString("#ffd166"), outlineColor: Cesium.Color.BLACK, outlineWidth: 1 }));
+  const camSize = cams.length > 300 ? 4 : 7;
+  camBase.forEach((p) => camPts.add({ position: p, pixelSize: camSize, color: Cesium.Color.fromCssColorString("#ffd166"), outlineColor: Cesium.Color.BLACK, outlineWidth: 1 }));
+  if (cams.length > 300) { camPts.show = false; $("tCams").checked = false; }  // thousands of markers hide the model
   const chkPts = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
   chk.forEach((c) => chkPts.add({
     position: Cesium.Cartesian3.fromDegrees(c.lon, c.lat, c.h_ref),
@@ -240,11 +271,11 @@ const ION_TOKEN = "";
   $("tAudit").onchange = async (e) => {
     $("legend").classList.toggle("show-aud", e.target.checked);
     if (!auditEnt) {
-      const au = await fetch("data/audit/audit.json").then((r) => r.json());
+      const au = await fetch(D + "audit/audit.json").then((r) => r.json());
       auditEnt = viewer.entities.add({ rectangle: {
         coordinates: Cesium.Rectangle.fromDegrees(au.overlay.west, au.overlay.south, au.overlay.east, au.overlay.north),
         height: groundEllipsoidal + 0.5,
-        material: new Cesium.ImageMaterialProperty({ image: "data/audit/audit.png", transparent: true }),
+        material: new Cesium.ImageMaterialProperty({ image: D + "audit/audit.png", transparent: true }),
       } });
     }
     auditEnt.show = e.target.checked;
@@ -264,7 +295,9 @@ const ION_TOKEN = "";
 
   // Oblique view from the south-west, looking at the model.
   const target = enuPoint([0, 0, meta.ground_enu_z]);
-  viewer.camera.lookAt(target, new Cesium.HeadingPitchRange(Cesium.Math.toRadians(30), Cesium.Math.toRadians(-32), 420));
+  viewer.camera.lookAt(target, SCENE === "aukerman"
+    ? new Cesium.HeadingPitchRange(Cesium.Math.toRadians(30), Cesium.Math.toRadians(-32), 420)
+    : new Cesium.HeadingPitchRange(Cesium.Math.toRadians(20), Cesium.Math.toRadians(-35), 520));
   viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
 })().catch((e) => {
   console.error(e);

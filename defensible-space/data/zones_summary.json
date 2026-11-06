@@ -15,11 +15,12 @@
   "shrub / tall grass": 7.3,
   "tree canopy": 20.7,
   "structure": 0.3,
-  "raised object (not vegetation)": 1.1
+  "raised non-green (dry vegetation or objects)": 1.1
  },
  "structures": [
   {
    "id": 1,
+   "score": 64.4,
    "footprint_area_m2": 160.2,
    "height_m": 4.9,
    "roof_z_enu": -98.36,
@@ -61,7 +62,7 @@
    },
    "flags": [
     "Shrub / tall grass in Zone 1 (15.3%)",
-    "Raised non-vegetation objects in Zone 0 (17.0%): check for combustibles"
+    "Raised non-green material in Zone 0 (17.0%): dry vegetation or stored objects; check for combustibles"
    ],
    "priority": "watch"
   }

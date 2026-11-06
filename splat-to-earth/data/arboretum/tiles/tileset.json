@@ -1,0 +1,72 @@
+{
+ "asset": {
+  "version": "1.1",
+  "generator": "georef-splat"
+ },
+ "extensionsUsed": [
+  "3DTILES_content_gltf"
+ ],
+ "extensions": {
+  "3DTILES_content_gltf": {
+   "extensionsUsed": [
+    "KHR_gaussian_splatting",
+    "KHR_gaussian_splatting_compression_spz_2"
+   ],
+   "extensionsRequired": [
+    "KHR_gaussian_splatting",
+    "KHR_gaussian_splatting_compression_spz_2"
+   ]
+  }
+ },
+ "geometricError": 905.6502165707446,
+ "root": {
+  "transform": [
+   0.8825155643035697,
+   -0.470283189963188,
+   0.0,
+   0.0,
+   0.263964120316607,
+   0.49534503798730384,
+   0.8276208289590327,
+   0.0,
+   -0.3892161635228319,
+   -0.7303882628981688,
+   0.5612875942626593,
+   0.0,
+   -2485171.8738067127,
+   -4663579.105975628,
+   3559868.7635757085,
+   1.0
+  ],
+  "boundingVolume": {
+   "box": [
+    8.26055908203125,
+    -15.140350341796875,
+    -57.39044165611267,
+    204.0999298095703,
+    0,
+    0,
+    0,
+    400.8156433105469,
+    0,
+    0,
+    0,
+    52.35090661048889
+   ]
+  },
+  "geometricError": 0.0,
+  "refine": "ADD",
+  "content": {
+   "uri": "splats.glb"
+  }
+ },
+ "extras": {
+  "origin_lat_lon_h_ellipsoidal": [
+   34.14489031377117,
+   -118.05268057657563,
+   195.04643842680397
+  ],
+  "source_ply": "splat_enu.ply",
+  "input_splats": 2993877
+ }
+}
