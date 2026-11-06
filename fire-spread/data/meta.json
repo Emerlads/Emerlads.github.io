@@ -1,0 +1,225 @@
+{
+ "fire": {
+  "name": "Little Giant Fire",
+  "state": "Washington",
+  "feds_fireid": 63369,
+  "feds_region": "CONUS",
+  "nifc_name": "Little Giant"
+ },
+ "centroid": [
+  -120.5872,
+  47.9594
+ ],
+ "bounds": [
+  -120.87243,
+  47.81757,
+  -120.26337,
+  48.09754
+ ],
+ "t_first": "2026-07-16T00:00:00Z",
+ "t_last": "2026-10-10T00:00:00Z",
+ "n_snapshots": 104,
+ "n_raw_snapshots": 182,
+ "final_area_km2": 884.03,
+ "final_perim_km": 174.8,
+ "n_pixels_total": 32096,
+ "peak_growth": {
+  "date": "2026-08-08",
+  "area_km2": 648.09,
+  "growth_km2": 181.57,
+  "growth_km2_day": 181.57,
+  "span_days": 1
+ },
+ "max_run": {
+  "i": 26,
+  "t": "2026-08-02T00:00:00Z",
+  "dt_days": 0.5,
+  "advance_m": 10634,
+  "rate_m_day": 21269,
+  "bearing_deg": 113,
+  "compass": "ESE",
+  "detached": false,
+  "from": [
+   -120.48096,
+   47.99662
+  ],
+  "to": [
+   -120.35003,
+   47.95844
+  ]
+ },
+ "top_runs": [
+  {
+   "i": 26,
+   "t": "2026-08-02T00:00:00Z",
+   "dt_days": 0.5,
+   "advance_m": 10634,
+   "rate_m_day": 21269,
+   "bearing_deg": 113,
+   "compass": "ESE",
+   "detached": false,
+   "from": [
+    -120.48096,
+    47.99662
+   ],
+   "to": [
+    -120.35003,
+    47.95844
+   ]
+  },
+  {
+   "i": 38,
+   "t": "2026-08-08T00:00:00Z",
+   "dt_days": 0.5,
+   "advance_m": 10393,
+   "rate_m_day": 20785,
+   "bearing_deg": 160,
+   "compass": "SSE",
+   "detached": false,
+   "from": [
+    -120.49206,
+    47.92602
+   ],
+   "to": [
+    -120.44495,
+    47.83756
+   ]
+  },
+  {
+   "i": 10,
+   "t": "2026-07-25T00:00:00Z",
+   "dt_days": 0.5,
+   "advance_m": 6759,
+   "rate_m_day": 13518,
+   "bearing_deg": 57,
+   "compass": "ENE",
+   "detached": true,
+   "from": [
+    -120.76071,
+    48.00704
+   ],
+   "to": [
+    -120.68481,
+    48.04047
+   ]
+  },
+  {
+   "i": 25,
+   "t": "2026-08-01T12:00:00Z",
+   "dt_days": 0.5,
+   "advance_m": 6106,
+   "rate_m_day": 12212,
+   "bearing_deg": 90,
+   "compass": "E",
+   "detached": false,
+   "from": [
+    -120.5627,
+    47.99714
+   ],
+   "to": [
+    -120.4808,
+    47.99728
+   ]
+  },
+  {
+   "i": 27,
+   "t": "2026-08-02T12:00:00Z",
+   "dt_days": 0.5,
+   "advance_m": 4917,
+   "rate_m_day": 9834,
+   "bearing_deg": 108,
+   "compass": "ESE",
+   "detached": false,
+   "from": [
+    -120.39186,
+    48.03006
+   ],
+   "to": [
+    -120.32908,
+    48.01641
+   ]
+  }
+ ],
+ "exposure": {
+  "segments": 164,
+  "lines": 22,
+  "inside": 0,
+  "within_1km": 0,
+  "within_5km": 0,
+  "within_10km": 9,
+  "closest": {
+   "id": "L211459-07",
+   "owner": "Pud No 1 Of Chelan County",
+   "kv": 115,
+   "min_dist_m": 5834,
+   "min_dist_t": "2026-08-22T00:00:00Z"
+  },
+  "substations": 7,
+  "substations_by_class": [
+   0,
+   0,
+   0,
+   2,
+   5
+  ],
+  "closest_substation": "(unnamed)",
+  "closest_substation_m": 5834,
+  "queue_n": 9,
+  "corridor_m": 60.0,
+  "segment_m": 1000.0,
+  "margin_km": 10.0
+ },
+ "nifc": {
+  "name": "Little Giant",
+  "unique_id": "2026-WAOWF-260406",
+  "gis_acres": 172912,
+  "area_km2": 694.6,
+  "feds_final_km2": 880.1,
+  "feds_reported_km2": 884.03,
+  "intersection_km2": 693.1,
+  "union_km2": 881.6,
+  "iou": 0.786,
+  "feds_only_km2": 187.0,
+  "nifc_only_km2": 1.5,
+  "polygon_date": "2026-10-13",
+  "discovery_date": "2026-07-16",
+  "containment_date": "2026-10-28",
+  "map_method": "Mixed Methods",
+  "source": "2026 NIFS"
+ },
+ "buildings": {
+  "n": 9678,
+  "source": "OpenStreetMap building footprints (centroids) via Overpass",
+  "feds": {
+   "inside": 93,
+   "within_1km": 154,
+   "within_5km": 1457
+  },
+  "nifc": {
+   "inside": 21,
+   "within_1km": 136,
+   "within_5km": 1054
+  },
+  "first_inside_t": "2026-07-23T00:00:00Z",
+  "tags": {
+   "yes": 5340,
+   "residential": 3323,
+   "detached": 733,
+   "commercial": 54,
+   "garage": 53,
+   "house": 37
+  }
+ },
+ "clusters_n": 20,
+ "cluster_cell_m": 500.0,
+ "grid_m": 250.0,
+ "simplify_m": 60.0,
+ "built": "2026-11-06",
+ "sources": {
+  "feds": "https://openveda.cloud/api/features/collections/public.eis_fire_lf_perimeter_nrt",
+  "feds_paper": "https://doi.org/10.1038/s41597-022-01343-0",
+  "hifld_tl": "https://services1.arcgis.com/Hp6G80Pky0om7QvQ/arcgis/rest/services/Electric_Power_Transmission_Lines/FeatureServer/0",
+  "osm_overpass": "https://overpass-api.de/api/interpreter",
+  "nifc": "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Interagency_Perimeters_YearToDate/FeatureServer/0"
+ }
+}

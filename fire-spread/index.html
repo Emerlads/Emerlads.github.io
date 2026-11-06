@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fire Spread Replay</title>
+<meta name="description" content="Replay of the 2026 Little Giant Fire (Washington) from NASA FEDS satellite perimeters: arrival-time map, rate of spread, and an exposure timeline for buildings, transmission lines and substations, with ranked drone inspection queues.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav><a href="../">← Roberto Bloom</a><span><a href="https://github.com/Emerlads/georef-splat-tools/blob/main/examples/fire/build_fire_data.py">Build script on GitHub</a></span></nav>
+
+<div id="stage">
+  <div id="map" role="region" aria-label="Map of the Little Giant Fire"></div>
+
+  <div id="panel">
+    <button id="hide" type="button" aria-expanded="true" aria-controls="panelBody">hide</button>
+    <h1>Fire Spread Replay</h1>
+    <div class="sub">Little Giant Fire, Washington, 2026 · NASA FEDS perimeters</div>
+    <div id="panelBody">
+      <div id="readout" aria-live="polite">
+        <div class="ro wide"><span class="k">Snapshot</span><b id="rDate">loading…</b></div>
+        <div class="ro"><span class="k">Area</span><b id="rArea">–</b></div>
+        <div class="ro"><span class="k">Growth</span><b id="rGrowth">–</b></div>
+        <div class="ro"><span class="k">Fire line</span><b id="rFline">–</b></div>
+        <div class="ro"><span class="k">Mean FRP</span><b id="rFrp">–</b></div>
+        <div class="ro"><span class="k">New pixels</span><b id="rPix">–</b></div>
+        <div class="ro"><span class="k">Lines ≤ 10 km</span><b id="rExp">–</b></div>
+        <div class="ro wide"><span class="k">Buildings inside perimeter so far</span><b id="rBld">–</b></div>
+      </div>
+
+      <div class="lbl">Layers</div>
+      <div class="toggles">
+        <label><input type="checkbox" id="tHist" checked> Earlier perimeters, faded by age</label>
+        <label><input type="checkbox" id="tFline" checked> Active fire line</label>
+        <label><input type="checkbox" id="tPix" checked> New VIIRS fire pixels this step</label>
+        <label><input type="checkbox" id="tArr"> Arrival time (first burned)</label>
+        <label><input type="checkbox" id="tRuns"> Biggest spread runs</label>
+        <label><input type="checkbox" id="tExp" checked> Transmission lines &amp; substations</label>
+        <label><input type="checkbox" id="tBld" checked> Buildings (OSM) by exposure</label>
+        <label><input type="checkbox" id="tNifc"> NIFC final perimeter (for comparison)</label>
+      </div>
+      <div class="lbl">Base map</div>
+      <div class="toggles" role="radiogroup" aria-label="Base map">
+        <label><input type="radio" name="base" value="imagery" checked> USGS imagery</label>
+        <label><input type="radio" name="base" value="topo"> USGS topo</label>
+      </div>
+    </div>
+  </div>
+
+  <div id="legend" aria-label="Map legend">
+    <div class="lg-row"><span class="sw fill-cur"></span>Perimeter at this step</div>
+    <div class="lg-row"><span class="sw line-hist"></span>Earlier perimeters (older = fainter)</div>
+    <div class="lg-row lg-fline"><span class="sw line-fline"></span>Active fire line</div>
+    <div class="lg-row lg-pix"><span class="dot pix"></span>New fire pixel (375 m VIIRS)</div>
+    <div class="lg-row lg-exp"><span class="sw line-exp" style="background:var(--c3)"></span>Line within 10 km at this step</div>
+    <div class="lg-row lg-exp"><span class="sw line-exp" style="background:var(--c4)"></span>Line beyond 10 km</div>
+    <div class="lg-row lg-exp"><span class="dot sub"></span>Substation (OSM)</div>
+    <div class="lg-row lg-bld"><span class="dot" style="background:var(--c0)"></span>Building inside perimeter</div>
+    <div class="lg-row lg-bld"><span class="dot" style="background:var(--c1)"></span>Building within 1 km</div>
+    <div class="lg-row lg-bld"><span class="dot" style="background:var(--c2)"></span>Building within 5 km</div>
+    <div class="lg-row lg-bld"><span class="dot bld-far"></span>Other OSM building</div>
+    <div class="lg-row lg-bld"><span class="sw line-cluster"></span>Building cluster in the queue</div>
+    <div class="lg-row lg-runs"><span class="sw line-run"></span>Max advance per step (top 5)</div>
+    <div class="lg-row lg-nifc"><span class="sw line-nifc"></span>NIFC WFIGS perimeter</div>
+    <div class="lg-arr">
+      <div class="lg-title">First burned</div>
+      <div id="arrRamp" class="ramp"></div>
+      <div id="arrTicks" class="ticks"></div>
+    </div>
+  </div>
+
+  <div id="timebar">
+    <button id="play" type="button" aria-label="Play replay" aria-pressed="false">▶</button>
+    <label class="vis-hidden" for="step">Snapshot</label>
+    <input id="step" type="range" min="0" max="103" value="0" step="1" aria-valuetext="loading">
+    <output id="stepOut" for="step">–</output>
+  </div>
+</div>
+
+<div class="wide">
+<article>
+
+<section class="charts" aria-labelledby="h-charts">
+  <h2 id="h-charts">Area and growth</h2>
+  <div class="chart-grid">
+    <figure>
+      <figcaption>Burned area, km² (FEDS <code>farea</code>). Click or drag to move the replay.</figcaption>
+      <div class="chart" id="chartArea" role="img" aria-label="Line chart of burned area over time"></div>
+    </figure>
+    <figure>
+      <figcaption>Growth per calendar day, km² (UTC days). Peak day highlighted.</figcaption>
+      <div class="chart" id="chartGrowth" role="img" aria-label="Bar chart of daily growth"></div>
+    </figure>
+  </div>
+  <figcaption class="row-cap">OSM buildings exposed, cumulative. Three panels, three scales: read the end labels, not the slopes against each other.</figcaption>
+  <div class="chart-grid three">
+    <figure><figcaption>Within 5 km of the perimeter</figcaption><div class="chart short" id="chartB5" role="img" aria-label="Cumulative buildings within 5 km"></div></figure>
+    <figure><figcaption>Within 1 km</figcaption><div class="chart short" id="chartB1" role="img" aria-label="Cumulative buildings within 1 km"></div></figure>
+    <figure><figcaption>Inside the FEDS perimeter</figcaption><div class="chart short" id="chartB0" role="img" aria-label="Cumulative buildings inside the perimeter"></div></figure>
+  </div>
+  <div class="tip" id="chartTip" hidden></div>
+</section>
+
+<section aria-labelledby="h-runs">
+  <h2 id="h-runs">Rate of spread</h2>
+  <p>For every snapshot I take each perimeter vertex, measure how far it sits outside the previous perimeter, and keep the farthest one. That distance over the elapsed time is the maximum outward advance for that step; the compass direction is from the nearest point on the old perimeter to the new vertex. The five largest are drawn as arrows on the map (turn on <i>Biggest spread runs</i>).</p>
+  <div class="tablewrap"><table id="runsTable">
+    <thead><tr><th>Step (UTC bin)</th><th>Advance</th><th>Implied rate</th><th>Direction</th><th>Note</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <p class="small">FEDS snapshots are 12-hour bins, so a run that shows up in one step may really have taken longer: if the previous VIIRS pass saw nothing through smoke or cloud, the whole advance lands in the next bin and the implied m/day doubles. Treat the ordering as reliable and the absolute m/day as an upper bound. A "detached" run means the new area did not touch the previous perimeter: a spot fire, a second ignition, or FEDS merging a neighbouring event.</p>
+</section>
+
+<section aria-labelledby="h-exp">
+  <h2 id="h-exp">Exposure timeline</h2>
+  <p id="expSummary">loading…</p>
+  <div class="stats" id="expStats"></div>
+  <div class="filters">
+    <label for="expFilter">Show</label>
+    <select id="expFilter">
+      <option value="all">all assets</option>
+      <option value="exposed" selected>within 10 km only</option>
+      <option value="lines">transmission segments</option>
+      <option value="subs">substations</option>
+    </select>
+    <span class="small">Sort by clicking a column. Click a row to zoom the map to it.</span>
+  </div>
+  <div class="tablewrap"><table id="expTable">
+    <thead><tr>
+      <th><button type="button" data-k="id">Asset</button></th>
+      <th><button type="button" data-k="owner">Owner / kV</button></th>
+      <th><button type="button" data-k="class">Closest approach</button></th>
+      <th><button type="button" data-k="first_10km">First ≤ 10 km</button></th>
+      <th><button type="button" data-k="first_5km">First ≤ 5 km</button></th>
+      <th><button type="button" data-k="first_1km">First ≤ 1 km</button></th>
+      <th><button type="button" data-k="first_0m">Reached</button></th>
+      <th><button type="button" data-k="min_dist_m">Min distance</button></th>
+    </tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <h3>Why this table is the product</h3>
+  <p>During an event a utility's PSPS (public-safety power shut-off) desk wants one question answered every few hours: which circuits is the fire approaching, how fast, and from which side. After the event the same table becomes the damage-assessment list: anything the perimeter reached needs eyes on it before re-energising, anything within a kilometre needs a look for heat damage and ash-induced flashover risk on insulators. For an insurer it is the exposure list: which assets, which dates, how close. All three are the same geometry question, asked at different times, and all three are better answered from a time series than from one final perimeter.</p>
+  <p>For the Little Giant Fire the honest answer is a short one: <b id="expVerdict">…</b> That is a useful answer too. A desk that can show the nearest 115 kV line stayed six kilometres from the satellite perimeter on every pass has a reason not to de-energise, and the records to defend it.</p>
+
+  <h3>Buildings</h3>
+  <p id="bldSummary">loading…</p>
+  <div class="tablewrap"><table id="bldTable">
+    <thead><tr><th>Buildings (OSM)</th><th>Against FEDS perimeters (satellite, 104 steps)</th><th>Against NIFC final perimeter (official)</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <ul class="caveats">
+    <li><b>Inside the satellite perimeter is not "damaged".</b> FEDS draws a smoothed hull around 375 m VIIRS detections and came out 27% larger than the NIFC perimeter for this fire; the two columns above differ by that much. Structures inside a real perimeter also survive routinely. The count answers "which buildings should be on the list to check", nothing more.</li>
+    <li><b>Timing is the first 12-hour bin</b> in which the building's centroid fell inside the perimeter or its 1 km / 5 km buffer, so it is late by up to a pass and never early.</li>
+    <li><b>Coverage is OpenStreetMap's.</b> <span id="bldCoverage"></span> Rural cabins and outbuildings are under-mapped in OSM; a county assessor parcel file or the utility's meter list would be the real input.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="h-queue">
+  <h2 id="h-queue">Drone inspection queue</h2>
+  <p>Exposed segments ranked inside the burn first, then within 1 km, 5 km and 10 km, and within each class by the earliest date the fire got there. Each segment becomes a <b>60 m corridor polygon</b> (120 m wide) ready to import into my <a href="../capture-planner/">Capture Planner</a>, which takes KML or GeoJSON polygons and turns them into a GSD-targeted flight plan. The planner reads one polygon per import (the first placemark in the file), so the KML is written in rank order: rank 1 loads as-is, and the CSV carries the rest of the list with centroids and dates.</p>
+  <p class="dl"><a class="btn" href="data/little-giant_inspection_corridors.kml" download>Download corridors (KML)</a> <a class="btn ghost" href="data/little-giant_inspection_queue.csv" download>Queue as CSV</a> <a class="btn ghost" href="../capture-planner/">Open Capture Planner</a></p>
+  <ol id="queueList" class="queue"></ol>
+  <h3>Building clusters</h3>
+  <p>The building list works the same way but as <b id="clusterCell">500 m</b> cells: each cell is ranked by how many OSM buildings sat inside the satellite perimeter, then by how many were within 1 km, then by the earliest date. The NIFC column is the cross-check: a cell with many "inside FEDS" and zero "inside NIFC" is most likely perimeter slop, not loss, and gets flown to confirm rather than to document.</p>
+  <p class="dl"><a class="btn" href="data/little-giant_building_clusters.kml" download>Download clusters (KML)</a> <a class="btn ghost" href="data/little-giant_building_clusters.csv" download>Clusters as CSV</a></p>
+  <ol id="clusterList" class="queue"></ol>
+  <div class="aside">
+    <div class="lbl">How I would fly it</div>
+    <p>Post-fire line inspection is a corridor job, not an area job. I would load the KML into the planner, fly each corridor as a single pass along the conductor at 50–60 m AGL with the camera at 20–30° off nadir toward the structures, two passes if there is a second circuit on the same towers, targeting ~1.5 cm GSD so cracked insulators, burnt crossarms and damaged ground wire are visible without a second visit. Thermal goes on the same flight if the fire is recent: hot pole bases and smouldering root balls under the line matter more than the conductor. Building clusters are the opposite shape: a 500 m cell is one standard nadir grid at 80–100 m AGL with 75/70 overlap, about eight minutes of flying, which gives an orthomosaic a damage-assessment team or an adjuster can mark up structure by structure, plus obliques of anything that looks burnt. Start at rank 1 and work down; the ranking is the schedule. Everything stays under 400 ft AGL, with a LAANC authorisation where controlled airspace applies and, during an active incident, a TFR check and coordination with the incident's air operations before anything leaves the ground.</p>
+  </div>
+</section>
+
+<section aria-labelledby="h-notes">
+  <h2 id="h-notes">Notes</h2>
+
+  <h3>Problem</h3>
+  <p>An animated fire map is easy to make and hard to use. The person who needs it is not watching an animation; they are triaging. An insurer wants to know which insured structures the fire reached and on what date, before claims arrive. An emergency manager wants a first-pass list of neighbourhoods to send damage-assessment teams to, ranked. A utility wants to know whether to de-energise a line and, afterwards, which spans to inspect before re-energising. Those are all the same question, <i>when did the fire reach this place</i>, asked about different assets, and a sequence of perimeters can answer it if you treat it as data rather than as frames.</p>
+
+  <h3>What the page does</h3>
+  <p>It replays NASA's FEDS perimeters for the Little Giant Fire, 104 distinct snapshots from <span id="nT0">July</span> to <span id="nT1">October 2026</span>, and derives five things from them: an arrival-time map (first snapshot whose perimeter contains each 250 m cell), a maximum outward advance per step with its direction, a distance time series from every ~1 km transmission segment and every substation to the perimeter, the first step each of <span id="nBld">9,678</span> OSM buildings fell inside the perimeter or within 1 km / 5 km of it, and two ranked inspection queues (line corridors, building clusters) exported as KML and CSV. Everything heavy is computed once in Python; the page loads about 1.8 MB of simplified JSON and a 7 kB PNG.</p>
+
+  <h3>Method</h3>
+  <p>FEDS publishes the same state every 12 hours while nothing new is detected, so the 182 records collapse to 104 unique snapshots keyed on the time of the last new detection. All geometry is done in a local metre frame (equirectangular about the fire centroid; under 0.1% scale error across 60 km) with shapely. Perimeters are simplified to 60 m for the page but used at full resolution for the distance and arrival calculations. Transmission lines are clipped to the fire's bounding box plus 10 km, cut into equal pieces of about 1 km, and each piece is tested against all 104 perimeters. Building centroids are tested with point-in-polygon against each perimeter and its 1 km and 5 km buffers, which is cheap enough to run for ten thousand buildings in a few seconds; their minimum distance is the distance to the union of all perimeters, which is exactly the minimum over steps. The same tests run once against the NIFC perimeter for the cross-check. Daily growth is the difference between the last snapshot of consecutive UTC days.</p>
+
+  <h3>Limits, stated plainly</h3>
+  <ul>
+    <li><b>These are not official perimeters.</b> FEDS perimeters are built from VIIRS 375 m active-fire detections (Suomi NPP and NOAA-20). Each detection is a pixel footprint, and the perimeter is a smoothed hull around them. Small features, unburned islands and sharp fingers are gone; the edge is uncertain by a pixel or so in the best case and by much more under smoke, cloud, or at the edge of a swath.</li>
+    <li><b>Area check against NIFC.</b> <span id="nifcText">loading…</span> Over-estimation of this order is normal for VIIRS-based perimeters on large fires and is the reason the exposure bands here start at 1 km, not at the line itself.</li>
+    <li><b>Timing is coarse.</b> Twelve-hour bins, and a detection has to clear VIIRS's thresholds, so "first within 5 km" can be late by a pass or two and never earlier than reality.</li>
+    <li><b>Infrastructure is incomplete.</b> HIFLD's transmission layer is a 2023 snapshot of lines at 69 kV and above; distribution circuits, the ones that actually run into the woods, are not in it. HIFLD's public substations layer has been withdrawn, so substations come from OpenStreetMap, which here is seven features, five of them unnamed. Buildings are OpenStreetMap footprints too: dense where someone has traced or imported them (Manson, Plain, the Entiat valley), thin in between, and I did not check them against Microsoft or Overture footprints. A real deployment would use the utility's own GIS and the county parcel file.</li>
+    <li><b>Screening only.</b> Nothing here is operational guidance. It is a method for turning public satellite perimeters into a time-stamped exposure list that an operator can check against their own data.</li>
+  </ul>
+
+  <h3>Data sources</h3>
+  <ul class="src">
+    <li>Fire perimeters, fire lines, new fire pixels: NASA <b>FEDS</b> (Fire Event Data Suite), large-fire NRT collections <code>eis_fire_lf_perimeter_nrt</code>, <code>eis_fire_lf_fireline_nrt</code>, <code>eis_fire_lf_newfirepix_nrt</code>, FEDS fire id 63369 (CONUS), via the <a href="https://openveda.cloud/api/features/">openveda.cloud OGC API Features</a>. Method: Chen, Y. et al., <a href="https://doi.org/10.1038/s41597-022-01343-0">"California wildfire spread derived using VIIRS satellite observations and an object-based tracking system"</a>, Scientific Data 9, 249 (2022).</li>
+    <li>Transmission lines: <b>HIFLD</b> Electric Power Transmission Lines, ArcGIS FeatureServer <code>services1.arcgis.com/Hp6G80Pky0om7QvQ/…/Electric_Power_Transmission_Lines</code>, queried by bounding box, data last edited September 2023.</li>
+    <li>Substations and buildings: <b>OpenStreetMap</b> <code>power=substation</code> and <code>building=*</code> (way and relation centroids) via the Overpass API, © OpenStreetMap contributors, ODbL. Building data as of the build date shown in the footer.</li>
+    <li>Official perimeter for comparison: <b>NIFC WFIGS</b> Interagency Fire Perimeters, Year-to-Date, <code>services3.arcgis.com/T4QMspbfLg3qTGWY/…/WFIGS_Interagency_Perimeters_YearToDate</code>, incident name "Little Giant".</li>
+    <li>Base maps: USGS National Map imagery and topo tiles. Map library: Leaflet 1.9.4.</li>
+  </ul>
+</section>
+
+</article>
+<footer>
+  <p>Roberto Bloom · <a href="../">portfolio</a> · <a href="https://github.com/Emerlads/georef-splat-tools/blob/main/examples/fire/build_fire_data.py">build_fire_data.py</a></p>
+  <p>Satellite-derived, screening-grade. Not an official incident product and not operational guidance. Data built <span id="builtDate">–</span>.</p>
+</footer>
+</div>
+
+<button id="theme" type="button" aria-label="Toggle dark mode">Dark</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="app.js"></script>
+</body>
+</html>

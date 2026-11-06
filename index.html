@@ -110,8 +110,7 @@ figure svg{display:block;width:100%;height:auto}
 figcaption{font-size:14px;color:var(--faint);font-style:italic;margin-top:10px;text-align:center}
 
 /* tools row */
-.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-@media(max-width:900px){.row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 .row .card{overflow:hidden;display:flex;flex-direction:column}
 .row .thumb{aspect-ratio:16/9}
 .row .body{padding:18px 20px 20px;flex:1;display:flex;flex-direction:column}
@@ -270,27 +269,27 @@ footer p{margin-bottom:8px}
           <text x="22" y="312">USGS 3DEP · 44 checkpoints</text>
         </g>
       </svg>
-      <img src="splat-to-earth/preview.jpg" alt="Screenshot of the Splat to Earth demo: a drone Gaussian splat sitting on terrain in CesiumJS with the datum toggle open" width="440" height="330" onerror="this.hidden=true">
+      <img src="splat-to-earth/preview.jpg" alt="Photoreal Gaussian splat of the LA County Arboretum placed on USGS imagery in CesiumJS" width="440" height="330" onerror="this.hidden=true">
     </a>
 
     <div class="body">
       <div class="tag">Live demo · CesiumJS</div>
       <h3><a class="plain" href="splat-to-earth/">Splat to Earth</a></h3>
-      <p class="hook">A drone Gaussian splat at true lat/lon/height in CesiumJS, checked against USGS 3DEP lidar. Toggle the vertical datum and watch it sink 34&nbsp;m. Then turn on the geometry audit and see where the splat looks right but isn't.</p>
+      <p class="hook"><b>Problem:</b> photoreal drone splats live in their trainer's private frame, so you can't put them on a map or trust them for measurement. <b>Built:</b> a pipeline that puts them at true lat/lon/height in CesiumJS, checks them against USGS lidar, and shows where the splat looks right but isn't. Toggle the vertical datum and watch the model sink 34&nbsp;m.</p>
       <div class="cta">
         <a class="btn" href="splat-to-earth/">Open the demo</a>
         <a class="btn ghost" href="https://github.com/Emerlads/georef-splat-tools">Code on GitHub</a>
       </div>
     </div>
 
-    <dl class="stats" aria-label="Key numbers on public CC0 data">
-      <div class="stat"><dt class="l"><b>Cameras solved</b></dt><dd class="n">76 <small>/ 77</small></dd></div>
-      <div class="stat"><dt class="l"><b>Camera-fit residual</b> · not accuracy</dt><dd class="n">0.93 <small>m H</small> · 0.84 <small>m V</small></dd></div>
-      <div class="stat"><dt class="l"><b>Vertical vs 3DEP lidar</b> · 44 checkpoints</dt><dd class="n">−1.27 <small>m bias</small><br>1.46 <small>m RMSE</small></dd></div>
-      <div class="stat"><dt class="l"><b>After anchoring</b> · held-out points</dt><dd class="n">0.74 <small>m RMSE</small></dd></div>
+    <dl class="stats" aria-label="Key numbers for the LA County Arboretum scene">
+      <div class="stat"><dt class="l"><b>RTK photos</b> · Mavic 3M</dt><dd class="n">2,046</dd></div>
+      <div class="stat"><dt class="l"><b>Camera fit</b> · vs raw GPS, not accuracy</dt><dd class="n">0.09 <small>m H</small> · 0.50 <small>m V</small></dd></div>
+      <div class="stat"><dt class="l"><b>Vertical vs 3DEP lidar</b> · 59 checkpoints</dt><dd class="n">−0.42 <small>m bias</small><br>0.72 <small>m RMSE</small></dd></div>
+      <div class="stat"><dt class="l"><b>After anchoring</b> · held-out points</dt><dd class="n">0.59 <small>m RMSE</small></dd></div>
     </dl>
   </article>
-  <p class="feat-note">Numbers above are on public CC0 data. The camera-fit residual says how well the solved cameras agree with their own GPS priors; the 3DEP figures are the independent check. <a href="https://github.com/Emerlads/georef-splat-tools">Code and method on GitHub.</a></p>
+  <p class="feat-note">Numbers above are for the LA County Arboretum (data used with permission). The demo also has a public CC0 scene (Aukerman Park, Ohio) where every step can be reproduced. Camera fit says how well solved cameras agree with their own GPS; the 3DEP figures are the independent check. <a href="https://github.com/Emerlads/georef-splat-tools">Code and method on GitHub.</a></p>
 </section>
 
 <section id="pipeline" aria-labelledby="h-pipeline">
@@ -380,8 +379,30 @@ footer p{margin-bottom:8px}
 </section>
 
 <section id="tools" aria-labelledby="h-tools">
-  <h2 id="h-tools">Tools</h2>
+  <h2 id="h-tools">Problems I've built answers for</h2>
   <div class="row">
+    <a class="card" href="fire-spread/">
+      <div class="thumb">
+        <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+          <rect width="320" height="180" fill="var(--diag-fill)"/>
+          <g fill="none" stroke-width="1.3">
+            <path d="M150 95 q10 -12 22 -4 q8 10 -4 18 q-14 6 -18 -14z" stroke="var(--accent)"/>
+            <path d="M128 92 q16 -34 52 -24 q30 14 18 44 q-20 30 -54 18 q-24 -10 -16 -38z" stroke="var(--diag-hi-line)"/>
+            <path d="M100 90 q20 -60 92 -48 q58 18 40 74 q-30 50 -96 32 q-50 -16 -36 -58z" stroke="var(--diag-line)" stroke-dasharray="3 4"/>
+          </g>
+          <g fill="var(--accent)"><circle cx="214" cy="70" r="2.4"/><circle cx="222" cy="82" r="2.4"/><circle cx="206" cy="128" r="2.4"/><circle cx="118" cy="122" r="2.4"/></g>
+          <path d="M40 150 L280 30" stroke="var(--faint)" stroke-width="1.2"/>
+          <g font-family="Menlo,Consolas,monospace" font-size="9.5" fill="var(--faint)"><text x="10" y="170">NASA FEDS · 104 snapshots · exposure</text></g>
+        </svg>
+        <img src="fire-spread/preview.jpg" alt="Screenshot of the Fire Spread Replay: fire perimeters over time and arrival-time colours over imagery" width="320" height="180" loading="lazy" onerror="this.hidden=true">
+      </div>
+      <div class="body">
+        <h3>Fire Spread Replay &amp; Exposure</h3>
+        <p><b>Problem:</b> after a wildfire, utilities and insurers need to know what the fire reached, and when. <b>Built:</b> a replay of a 2026 fire from NASA satellite perimeters, with arrival-time and rate-of-spread maps, an exposure timeline for power lines and buildings, and a ranked drone inspection queue.</p>
+        <div class="meta">Live demo · <span class="go">Open the replay</span></div>
+      </div>
+    </a>
+
     <a class="card" href="defensible-space/">
       <div class="thumb">
         <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
@@ -403,7 +424,7 @@ footer p{margin-bottom:8px}
       </div>
       <div class="body">
         <h3>Defensible Space Screener</h3>
-        <p>Finds structures in a drone survey and measures fuel in the Zone 0 / 1 / 2 rings, with a source-photo chip for each. GeoJSON out for ArcGIS.</p>
+        <p><b>Problem:</b> Zone 0 inspections mean scrolling through thousands of drone photos. <b>Built:</b> finds the buildings, measures fuel in the 5/30/100 ft rings, ranks them, and exports GeoJSON. Tested on 14 buildings 2.5 km from the Eaton Fire.</p>
         <div class="meta">Live demo · <span class="go">Open the screener</span></div>
       </div>
     </a>
@@ -435,7 +456,7 @@ footer p{margin-bottom:8px}
       </div>
       <div class="body">
         <h3>Capture Planner</h3>
-        <p>GSD and overlap planner that exports DJI WPML missions, including oblique rings for splat capture.</p>
+        <p><b>Problem:</b> most bad 3D models are decided before take-off. <b>Built:</b> my field capture standards as a planner: target GSD → altitude, overlap, shutter checks, oblique splat rings, and a DJI WPML mission export.</p>
         <div class="meta">Browser tool · <span class="go">Open the planner</span></div>
       </div>
     </a>
@@ -456,7 +477,7 @@ footer p{margin-bottom:8px}
       </div>
       <div class="body">
         <h3>georef-splat</h3>
-        <p>Python package: geodesy, RANSAC Sim3, an SPZ / <code>KHR_gaussian_splatting</code> 3D Tiles writer, splat geometry audit, defensible-space zones. Tested, CI.</p>
+        <p>The open-source engine behind the demos: geodesy, RANSAC Sim3, georeferencing third-party splats, an SPZ / <code>KHR_gaussian_splatting</code> 3D Tiles writer, splat geometry audit, defensible-space zones. Tested, CI.</p>
         <div class="meta">MIT · <span class="go">github.com/Emerlads/georef-splat-tools</span></div>
       </div>
     </a>
